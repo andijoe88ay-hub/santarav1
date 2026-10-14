@@ -1,0 +1,2509 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SANTARA — Sistem Administrasi Terpadu Wali Kelas SMK NU 01 Kendal</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        santara: {
+                            navy: '#16324F',
+                            teal: '#0F766E',
+                            blue: '#2563EB',
+                            bg: '#F8FAFC',
+                            card: '#FFFFFF',
+                            textMain: '#172B4D',
+                            textSec: '#64748B',
+                            border: '#E2E8F0',
+                            success: '#15803D',
+                            warning: '#D97706',
+                            danger: '#DC2626',
+                            purple: '#7C3AED'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS SDK (versi dipin) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+    <!-- QRious for QR Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <!-- html5-qrcode for Camera Scanning -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; color: #172B4D; padding-bottom: 75px; }
+        @media (min-width: 768px) { body { padding-bottom: 0; } }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white !important; color: black !important; }
+            .print-container { width: 100% !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: none !important; }
+            @page { size: A4 portrait; margin: 15mm; }
+        }
+        .print-only { display: none; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #F1F5F9; }
+        ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-santara-bg text-santara-textMain min-h-screen flex flex-col antialiased">
+
+    <div id="app" class="flex-1 flex flex-col">
+        <!-- Login View -->
+        <div id="loginView" class="fixed inset-0 bg-gradient-to-br from-slate-900 via-santara-navy to-santara-teal flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <div class="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-white/20 my-auto">
+                <div class="bg-gradient-to-r from-santara-navy to-santara-teal p-8 text-white text-center relative">
+                    <div class="absolute top-4 right-4 bg-white/20 px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase">TP 2026/2027</div>
+                    <div class="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-3 border border-white/30 shadow-inner">
+                        <i class="fa-solid fa-graduation-cap text-3xl text-white"></i>
+                    </div>
+                    <h1 class="text-2xl font-extrabold tracking-wide">SANTARA</h1>
+                    <p class="text-xs text-blue-100 mt-1 font-medium">Sistem Administrasi Terpadu Wali Kelas</p>
+                    <p class="text-[11px] text-teal-200 mt-0.5">SMK NU 01 Kendal • Kelas X TSM 4</p>
+                </div>
+                <div class="p-6 md:p-8 space-y-5">
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-santara-textSec mb-1.5 uppercase tracking-wider">PILIH ROLE / HAK AKSES</label>
+                            <select id="loginRoleSelect" onchange="onRoleChange()" class="w-full px-3.5 py-3 bg-gray-50 border border-santara-border rounded-xl text-xs font-semibold focus:ring-2 focus:ring-santara-teal focus:outline-none">
+                                <option value="walikelas">Wali Kelas (Login Email)</option>
+                                <option value="petugas">Siswa Kader Petugas QR (Token Akses)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-santara-textSec mb-1.5 uppercase tracking-wider" id="loginUserLabel">EMAIL</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400"><i class="fa-solid fa-user text-xs"></i></span>
+                                <input type="text" id="loginUsername" value="" placeholder="email@sekolah.sch.id" autocomplete="username" class="w-full pl-10 pr-3 py-3 border border-santara-border rounded-xl text-xs bg-gray-50 font-medium focus:bg-white focus:ring-2 focus:ring-santara-teal focus:outline-none">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-santara-textSec mb-1.5 uppercase tracking-wider">PASSWORD</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-gray-400"><i class="fa-solid fa-lock text-xs"></i></span>
+                                <input type="password" id="loginPassword" value="" autocomplete="current-password" onkeydown="if(event.key==='Enter')handleLogin()" class="w-full pl-10 pr-10 py-3 border border-santara-border rounded-xl text-xs bg-gray-50 font-medium focus:bg-white focus:ring-2 focus:ring-santara-teal focus:outline-none">
+                                <button type="button" onclick="togglePassword()" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600">
+                                    <i class="fa-solid fa-eye text-xs" id="eyeIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button onclick="handleLogin()" class="w-full py-3.5 bg-santara-teal hover:bg-teal-800 text-white font-bold rounded-xl shadow-lg shadow-teal-900/20 transition duration-200 flex items-center justify-center space-x-2 text-xs uppercase tracking-wider">
+                        <span>MASUK KE SISTEM</span>
+                        <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main App Layout -->
+        <div id="mainAppLayout" class="hidden flex-1 flex flex-col md:flex-row h-screen overflow-hidden">
+            <!-- Desktop Sidebar -->
+            <aside id="sidebar" class="hidden md:flex w-64 bg-santara-navy text-white flex-col no-print z-25 shadow-xl">
+                <div class="p-4 border-b border-white/10 flex items-center justify-between">
+                    <div class="flex items-center space-x-3 cursor-pointer" onclick="toggleMobileDrawer()">
+                        <div class="w-10 h-10 bg-santara-teal rounded-xl flex items-center justify-center font-extrabold text-sm shadow-inner">ST</div>
+                        <div>
+                            <h2 class="font-bold text-sm tracking-wide leading-tight">SANTARA</h2>
+                            <p class="text-[9px] text-teal-300 font-semibold tracking-wider">SMK NU 01 KENDAL</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3 mx-3 my-3 bg-white/5 rounded-2xl border border-white/10 flex items-center space-x-3">
+                    <img id="sidebarUserAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" alt="Avatar" class="w-10 h-10 rounded-xl object-cover border border-santara-teal shadow">
+                    <div class="overflow-hidden flex-1">
+                        <h4 id="sidebarUserName" class="text-xs font-bold truncate text-white">Bpk. Miftahudin, S.Pd.</h4>
+                        <p id="sidebarUserRole" class="text-[10px] text-teal-300 truncate font-medium">Wali Kelas X TSM 4</p>
+                    </div>
+                </div>
+
+                <nav id="navLinksContainer" class="flex-1 overflow-y-auto px-3 py-2 space-y-1 text-xs font-medium">
+                    <!-- Dynamic nav generated by JS -->
+                </nav>
+            </aside>
+
+            <!-- Main Content Area -->
+            <div class="flex-1 flex flex-col h-screen overflow-hidden">
+                <header class="h-16 bg-white/90 backdrop-blur-md border-b border-santara-border px-4 md:px-6 flex items-center justify-between no-print z-20 shadow-xs">
+                    <div class="flex items-center space-x-3">
+                        <div class="flex items-center space-x-2.5 cursor-pointer" onclick="toggleMobileDrawer()">
+                            <div class="w-9 h-9 bg-santara-teal text-white rounded-xl flex items-center justify-center font-bold text-xs shadow-md">ST</div>
+                            <span class="font-black text-santara-navy text-sm tracking-tight">SANTARA</span>
+                        </div>
+                        <div class="hidden md:block">
+                            <h2 id="pageTitle" class="text-base font-extrabold text-santara-navy">Dashboard Wali Kelas</h2>
+                            <p id="pageSubtitle" class="text-[11px] text-santara-textSec font-medium">Sistem Administrasi Terpadu Kelas X TSM 4 • TP 2026/2027</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3">
+                        <div class="hidden lg:flex flex-col text-right text-xs bg-gray-50 px-3 py-1.5 rounded-xl border border-santara-border">
+                            <span id="currentWIBTime" class="font-bold text-santara-navy">07:30:15 WIB</span>
+                            <span id="currentDateText" class="text-[10px] text-santara-textSec">Rabu, 14 Okt 2026</span>
+                        </div>
+                        
+                        <div class="relative">
+                            <button onclick="handleTopbarProfileClick()" class="flex items-center space-x-2.5 pl-2 border-l border-santara-border focus:outline-none group">
+                                <img id="topbarUserAvatar" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80" alt="User" class="w-9 h-9 rounded-xl object-cover border-2 border-santara-teal shadow-sm group-hover:scale-105 transition">
+                                <div class="hidden sm:block text-left">
+                                    <span id="topbarUserName" class="block text-xs font-bold text-santara-navy leading-tight">Bpk. Miftahudin, S.Pd.</span>
+                                    <span id="topbarUserRoleBadge" class="inline-block px-1.5 py-0.2 bg-teal-100 text-teal-800 rounded text-[9px] font-bold">Wali Kelas</span>
+                                </div>
+                                <i class="fa-solid fa-chevron-down text-[10px] text-gray-400 ml-1"></i>
+                            </button>
+
+                            <div id="userDropdownMenu" class="hidden absolute right-0 mt-2 w-52 bg-white rounded-2xl shadow-2xl border border-santara-border py-2 z-50 text-xs font-semibold animate-in fade-in zoom-in-95 duration-150">
+                                <div class="px-4 py-2.5 border-b border-gray-100">
+                                    <p id="dropdownUserFullName" class="font-bold text-santara-navy truncate">Bpk. Miftahudin, S.Pd.</p>
+                                    <p class="text-[10px] text-teal-600 font-medium">Akun Terverifikasi SANTARA</p>
+                                </div>
+                                <button onclick="handleLogout()" class="w-full text-left px-4 py-3 hover:bg-red-50 text-red-600 flex items-center space-x-2.5 transition">
+                                    <i class="fa-solid fa-power-off text-sm"></i>
+                                    <span>Keluar Sistem</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <main id="mainContentArea" class="flex-1 overflow-y-auto p-4 md:p-6 bg-santara-bg pb-24 md:pb-6">
+                    <!-- Dynamic views rendered here -->
+                </main>
+
+                <nav id="mobileBottomNav" class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-santara-border z-30 flex items-center justify-around py-2.5 px-2 text-[10px] font-bold text-santara-textSec shadow-2xl">
+                    <!-- Injected dynamically by updateNavigation() -->
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Drawer Modal -->
+    <div id="mobileDrawerModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-end animate-in fade-in duration-200">
+        <div class="bg-white rounded-t-3xl w-full max-h-[85vh] overflow-y-auto p-6 space-y-4 shadow-2xl border-t border-santara-border">
+            <div class="flex items-center justify-between border-b pb-3.5">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-8 h-8 bg-santara-teal text-white rounded-xl flex items-center justify-center font-bold text-xs">ST</div>
+                    <h3 class="font-extrabold text-santara-navy text-sm uppercase tracking-wide">Menu Navigasi SANTARA</h3>
+                </div>
+                <button onclick="toggleMobileDrawer()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition"><i class="fa-solid fa-xmark text-base"></i></button>
+            </div>
+            <div id="mobileDrawerLinks" class="grid grid-cols-2 gap-2.5 text-xs font-semibold">
+                <!-- Injected dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Container -->
+    <div id="modalContainer" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div id="modalContentBox" class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col border border-santara-border my-auto animate-in zoom-in-95 duration-200">
+            <!-- Modal header & body injected dynamically -->
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toastNotification" class="hidden fixed bottom-20 md:bottom-6 right-6 bg-santara-navy text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center space-x-3.5 z-50 border border-teal-500/50 animate-bounce">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-teal-400 text-lg"></i>
+        <div>
+            <h5 id="toastTitle" class="text-xs font-bold tracking-wide">Berhasil</h5>
+            <p id="toastMessage" class="text-[11px] text-gray-200 font-medium">Aksi berhasil disimpan ke sistem.</p>
+        </div>
+    </div>
+
+    <script>
+        // =====================================================================
+        // KONFIGURASI SUPABASE — ISI DUA NILAI INI (Supabase > Project Settings > API)
+        // =====================================================================
+        const SUPABASE_URL = 'https://llalvnlzwfuywtysitjg.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxsYWx2bmx6d2Z1eXd0eXNpdGpnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE5NzAzNTksImV4cCI6MjEwNzU0NjM1OX0.zjPUu9ObueU2OCyG03e3tOmX2bEKZT20I1hVYfIgP2c';
+        // anon key AMAN dipublikasikan; data dilindungi RLS di database.
+        const sb = (window.supabase && !SUPABASE_URL.includes('GANTI-DENGAN') && !SUPABASE_ANON_KEY.includes('GANTI-DENGAN'))
+            ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+        const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+        // mockState kini hanya CACHE tampilan; sumber data asli = Supabase (loadAll()).
+        const mockState = {
+            currentRole: 'walikelas', uid: null,
+            schoolConfig: { schoolName: '', department: '', className: '', academicYear: '', principalName: '', principalNip: '', teacherName: '', teacherNip: '', teacherPhone: '', teacherPassword: '', address: '', avatar: DEFAULT_AVATAR },
+            currentUser: { id: 0, name: '', role: '', nip: '', avatar: DEFAULT_AVATAR, isQrOfficer: false, phone: '', address: '', parent: 'Wali Kelas', parentPhone: '' },
+            qrSettings: { startTime: '06:45', toleranceTime: '07:15', endTime: '08:00', tokenValidSeconds: 30, status: 'AKTIF' },
+            stats: { totalStudents: 0, present: 0, late: 0, sick: 0, permitted: 0, alpha: 0, unrecorded: 0 },
+            students: [], permissions: [], violations: [], homeVisits: [], counseling: [], tokens: [],
+            dailyQuotes: [
+                { quote: "Kesuksesan bukanlah kunci kebahagiaan. Kebahagiaan adalah kunci kesuksesan. Jika Anda mencintai apa yang Anda lakukan, Anda akan berhasil.", author: "Albert Schweitzer", type: "Motivasi Harian" },
+                { quote: "Belajar tanpa berpikir adalah sia-sia, berpikir tanpa belajar adalah berbahaya.", author: "Confucius", type: "Pendidikan Vokasi" },
+                { quote: "Jadilah seperti montir TSM yang handal: selalu tahu persis di mana letak masalahnya dan bagaimana cara memperbaikinya dengan senyuman.", author: "Kearifan Anak TSM", type: "Jokes Santri" }
+            ]
+        };
+        let kaderToken = null;
+        let lastScan = { nis: '', at: 0 };
+
+        // ---------- Helper ----------
+        const BLN = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+        function fmtDate(iso) { if (!iso) return '-'; const [y, m, d] = String(iso).slice(0, 10).split('-'); return `${parseInt(d)} ${BLN[parseInt(m) - 1]} ${y}`; }
+        function todayISO() { return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }); }
+        function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+        function errMsg(e) {
+            const m = (e && (e.message || e.error_description)) || String(e);
+            if (/TOKEN_INVALID/.test(m)) return 'Token tidak valid atau sudah kedaluwarsa.';
+            if (/SISWA_TIDAK_DITEMUKAN/.test(m)) return 'NISN tidak ditemukan di kelas ini.';
+            if (/Invalid login credentials/i.test(m)) return 'Email atau password salah.';
+            if (e && e.code === '23505') return 'NISN sudah terdaftar di kelas ini.';
+            if (/Failed to fetch|NetworkError/i.test(m)) return 'Tidak dapat terhubung ke server. Periksa koneksi internet.';
+            return m;
+        }
+        function needSb() {
+            if (sb) return false;
+            showToast('Konfigurasi Belum Diisi', 'Isi SUPABASE_URL dan SUPABASE_ANON_KEY di bagian atas skrip.');
+            return true;
+        }
+        function compressImage(file, max, cb) {
+            const r = new FileReader();
+            r.onload = e => {
+                const img = new Image();
+                img.onload = () => {
+                    const k = Math.min(1, max / Math.max(img.width, img.height));
+                    const c = document.createElement('canvas');
+                    c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+                    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+                    cb(c.toDataURL('image/jpeg', 0.75));
+                };
+                img.onerror = () => cb(null);
+                img.src = e.target.result;
+            };
+            r.readAsDataURL(file);
+        }
+        async function run(fn, okMsg, route) {   // jalankan operasi DB + refresh tampilan
+            if (needSb()) return;
+            try {
+                await fn();
+                await loadAll();
+                if (okMsg) showToast(okMsg[0], okMsg[1]);
+                if (route) renderView(route);
+            } catch (e) { showToast('Gagal Menyimpan', errMsg(e)); }
+        }
+
+        // ---------- Muat semua data milik guru dari Supabase ----------
+        async function loadAll() {
+            const uid = mockState.uid;
+            const q = (t) => sb.from(t).select('*').order('created_at', { ascending: false });
+            const res = await Promise.all([
+                sb.from('profiles').select('*').eq('id', uid).maybeSingle(),
+                sb.from('students').select('*').order('nis'),
+                sb.from('attendance').select('student_id,att_date,status,scan_time'),
+                q('violations'), q('counseling'), q('home_visits'), q('permissions'),
+                sb.from('class_tokens').select('*').eq('is_active', true).gt('expires_at', new Date().toISOString()).order('created_at', { ascending: false })
+            ]);
+            res.forEach(r => { if (r.error) throw r.error; });
+            let prof = res[0].data;
+            if (!prof) {
+                const ins = await sb.from('profiles').insert({ id: uid }).select().single();
+                if (ins.error) throw ins.error;
+                prof = ins.data;
+            }
+            const sc = mockState.schoolConfig;
+            Object.assign(sc, { schoolName: prof.school_name, department: prof.department, className: prof.class_name, academicYear: prof.academic_year, principalName: prof.principal_name, principalNip: prof.principal_nip, teacherName: prof.teacher_name, teacherNip: prof.teacher_nip, teacherPhone: prof.teacher_phone, address: prof.address, avatar: prof.avatar || DEFAULT_AVATAR });
+            mockState.qrSettings.startTime = prof.qr_start;
+            mockState.qrSettings.toleranceTime = prof.qr_tolerance;
+
+            const today = todayISO();
+            const sum = {}, todayRow = {};
+            res[2].data.forEach(a => {
+                const m = sum[a.student_id] || (sum[a.student_id] = { hadir: 0, terlambat: 0, sakit: 0, izin: 0, alfa: 0 });
+                m[a.status.toLowerCase()]++;
+                if (a.att_date === today) todayRow[a.student_id] = a;
+            });
+            const byId = {};
+            mockState.students = res[1].data.map(r => {
+                const t = todayRow[r.id];
+                const st = { id: r.id, nis: r.nis, name: esc(r.name), gender: r.gender, phone: esc(r.phone), parent: esc(r.parent), parentPhone: esc(r.parent_phone), address: esc(r.address), mapLink: r.map_link, avatar: r.avatar, isQrOfficer: false,
+                    status: t ? t.status : 'BELUM', time: t ? t.scan_time : '-', attendanceSummary: sum[r.id] || { hadir: 0, terlambat: 0, sakit: 0, izin: 0, alfa: 0 },
+                    username: r.nis, accountStatus: r.is_active ? 'Aktif' : 'Nonaktif', lastLogin: t ? `${t.status} • ${t.scan_time}` : '-' };
+                byId[r.id] = st; return st;
+            });
+            const who = id => byId[id] || { name: 'Siswa (dihapus)', nis: '-' };
+            mockState.violations = res[3].data.map(r => ({ id: r.id, studentName: who(r.student_id).name, nis: who(r.student_id).nis, date: fmtDate(r.vio_date), violation: esc(r.violation), category: r.category, points: r.points, action: esc(r.action) }));
+            mockState.counseling = res[4].data.map(r => ({ id: r.id, studentName: who(r.student_id).name, nis: who(r.student_id).nis, date: fmtDate(r.c_date), category: esc(r.category), description: esc(r.description), action: esc(r.action), result: esc(r.result), status: r.status }));
+            mockState.homeVisits = res[5].data.map(r => ({ id: r.id, studentName: who(r.student_id).name, nis: who(r.student_id).nis, date: fmtDate(r.visit_date), officer: esc(r.officer), reason: esc(r.reason), result: esc(r.result), status: r.status, evidenceUrl: r.evidence_url }));
+            mockState.permissions = res[6].data.map(r => ({ id: r.id, studentId: r.student_id, studentName: who(r.student_id).name, nis: who(r.student_id).nis, category: r.category, date: fmtDate(r.perm_date), rawDate: r.perm_date, reason: esc(r.reason), status: r.status, evidenceType: 'whatsapp', evidenceUrl: r.evidence_url || `https://wa.me/${sc.teacherPhone}` }));
+            mockState.tokens = res[7].data.map(r => ({ id: r.id, token: r.token, label: esc(r.label), expiresText: new Date(r.expires_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) + ' WIB' }));
+            recalculateStats();
+        }
+
+        // ---------- Sesi ----------
+        async function startTeacherSession(user) {
+            mockState.currentRole = 'walikelas';
+            mockState.uid = user.id;
+            await loadAll();
+            const sc = mockState.schoolConfig;
+            mockState.currentUser = { id: 0, name: sc.teacherName, role: `Wali Kelas ${sc.className}`, nip: sc.teacherNip, avatar: sc.avatar, isQrOfficer: false, phone: sc.teacherPhone, address: sc.schoolName, parent: 'Wali Kelas', parentPhone: sc.teacherPhone };
+            proceedLoginSuccess();
+        }
+        function startKaderSession(token, info) {
+            kaderToken = token;
+            mockState.currentRole = 'petugas';
+            const sc = mockState.schoolConfig;
+            sc.className = info.class_name; sc.schoolName = info.school_name; sc.teacherName = info.teacher_name;
+            mockState.qrSettings.toleranceTime = info.qr_tolerance;
+            mockState.currentUser = { id: 0, name: 'Kader Petugas QR', role: `Kader Petugas QR ${info.class_name}`, nip: '', avatar: DEFAULT_AVATAR, isQrOfficer: true, phone: '', address: '', parent: '', parentPhone: '' };
+            proceedLoginSuccess();
+        }
+        function onRoleChange() {
+            const kader = document.getElementById('loginRoleSelect').value === 'petugas';
+            const u = document.getElementById('loginUsername');
+            document.getElementById('loginUserLabel').innerText = kader ? 'TOKEN AKSES HARIAN' : 'EMAIL';
+            u.placeholder = kader ? 'Contoh: K7M2QX9R' : 'email@sekolah.sch.id';
+            u.value = '';
+            document.getElementById('loginPassword').closest('div.relative').parentElement.style.display = kader ? 'none' : '';
+        }
+        async function handleLogin() {
+            if (needSb()) return;
+            const role = document.getElementById('loginRoleSelect').value;
+            const idv = document.getElementById('loginUsername').value.trim();
+            const pw = document.getElementById('loginPassword').value;
+            if (!idv || (role === 'walikelas' && !pw)) { showToast('Peringatan', role === 'walikelas' ? 'Email dan password wajib diisi.' : 'Token akses wajib diisi.'); return; }
+            const btn = document.querySelector('#loginView button[onclick="handleLogin()"]');
+            btn.disabled = true; btn.style.opacity = '.6';
+            try {
+                if (role === 'walikelas') {
+                    const { data, error } = await sb.auth.signInWithPassword({ email: idv, password: pw });
+                    if (error) throw error;
+                    await startTeacherSession(data.user);
+                } else {
+                    const tk = idv.toUpperCase();
+                    const { data, error } = await sb.rpc('kader_login', { p_token: tk });
+                    if (error) throw error;
+                    startKaderSession(tk, data);
+                }
+            } catch (e) { showToast('Peringatan', errMsg(e)); }
+            finally { btn.disabled = false; btn.style.opacity = ''; }
+        }
+
+        // Polling ringan agar dashboard guru menampilkan hasil scan Kader secara hampir real-time
+        setInterval(async () => {
+            if (!sb || mockState.currentRole !== 'walikelas' || !mockState.uid || currentActiveRoute !== 'dashboard') return;
+            if (!document.getElementById('modalContainer').classList.contains('hidden')) return;
+            try { await loadAll(); renderView('dashboard'); } catch (e) { /* abaikan */ }
+        }, 20000);
+
+        let currentActiveRoute = 'dashboard';
+        let activeHtml5QrCode = null;
+        let currentReportTab = 'kehadiran';
+
+        // Helper to dynamically calculate student points based on violations
+        function getStudentPoints(student) {
+            const studentViolations = mockState.violations.filter(v => v.nis === student.nis);
+            const totalDeduction = studentViolations.reduce((sum, v) => sum + (v.points || 0), 0);
+            return Math.max(0, 100 + totalDeduction);
+        }
+
+        window.onload = async function() {
+            startClock();
+            onRoleChange();
+            if (needSb()) return;
+            const { data } = await sb.auth.getSession();   // sesi guru tetap aktif setelah refresh
+            if (data && data.session) {
+                try { await startTeacherSession(data.session.user); } catch (e) { showToast('Peringatan', errMsg(e)); }
+            }
+        };
+
+        function startClock() {
+            setInterval(() => {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' }) + ' WIB';
+                const el = document.getElementById('currentWIBTime');
+                if(el) el.innerText = timeString;
+                const de = document.getElementById('currentDateText');
+                if(de) de.innerText = now.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' });
+            }, 1000);
+        }
+
+        function recalculateStats() {
+            let present = 0, late = 0, sick = 0, permitted = 0, alpha = 0, unrecorded = 0;
+            mockState.students.forEach(s => {
+                if(s.status === 'HADIR') present++;
+                else if(s.status === 'TERLAMBAT') late++;
+                else if(s.status === 'SAKIT') sick++;
+                else if(s.status === 'IZIN') permitted++;
+                else if(s.status === 'ALFA') alpha++;
+                else unrecorded++;
+            });
+            mockState.stats.present = present;
+            mockState.stats.late = late;
+            mockState.stats.sick = sick;
+            mockState.stats.permitted = permitted;
+            mockState.stats.alpha = alpha;
+            mockState.stats.unrecorded = unrecorded;
+            mockState.stats.totalStudents = mockState.students.length;
+        }
+
+        function togglePassword() {
+            const pwd = document.getElementById('loginPassword');
+            const icon = document.getElementById('eyeIcon');
+            if (pwd.type === 'password') {
+                pwd.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                pwd.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        function handleTopbarProfileClick() {
+            const dropdown = document.getElementById('userDropdownMenu');
+            dropdown.classList.toggle('hidden');
+        }
+
+        function toggleMobileDrawer() {
+            const drawer = document.getElementById('mobileDrawerModal');
+            drawer.classList.toggle('hidden');
+        }
+
+        // (fungsi lama handleLogin dihapus: login kini lewat Supabase)
+
+        // (fungsi lama openFirstTimePasswordModal dihapus: login kini lewat Supabase)
+
+        // (fungsi lama submitFirstTimePassword dihapus: login kini lewat Supabase)
+
+        function proceedLoginSuccess() {
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('mainAppLayout').classList.remove('hidden');
+            
+            document.getElementById('sidebarUserName').innerText = mockState.currentUser.name;
+            document.getElementById('sidebarUserRole').innerText = mockState.currentUser.role;
+            document.getElementById('sidebarUserAvatar').src = mockState.currentUser.avatar;
+            document.getElementById('topbarUserName').innerText = mockState.currentUser.name;
+            document.getElementById('topbarUserAvatar').src = mockState.currentUser.avatar;
+            if(document.getElementById('dropdownUserFullName')) {
+                document.getElementById('dropdownUserFullName').innerText = mockState.currentUser.name;
+            }
+            document.getElementById('topbarUserRoleBadge').innerText = mockState.currentRole === 'walikelas' ? 'Wali Kelas' : (mockState.currentUser.isQrOfficer ? 'Petugas QR' : 'Siswa');
+
+            updateNavigation();
+            renderView('dashboard');
+            showToast('Berhasil Masuk', `Selamat datang kembali, ${mockState.currentUser.name}`);
+        }
+
+        function handleLogout() {
+            if (sb && mockState.currentRole === 'walikelas') sb.auth.signOut();
+            kaderToken = null; mockState.uid = null;
+            Object.assign(mockState, { students: [], permissions: [], violations: [], homeVisits: [], counseling: [], tokens: [] });
+            document.getElementById('loginPassword').value = ''; document.getElementById('loginUsername').value = '';
+            if (activeHtml5QrCode) {
+                try {
+                    activeHtml5QrCode.stop().then(() => {
+                        activeHtml5QrCode.clear();
+                        activeHtml5QrCode = null;
+                    }).catch(e => { activeHtml5QrCode = null; });
+                } catch(e) { activeHtml5QrCode = null; }
+            }
+            document.getElementById('mainAppLayout').classList.add('hidden');
+            document.getElementById('loginView').classList.remove('hidden');
+            if(document.getElementById('userDropdownMenu')) {
+                document.getElementById('userDropdownMenu').classList.add('hidden');
+            }
+        }
+
+        function showToast(title, message) {
+            const toast = document.getElementById('toastNotification');
+            document.getElementById('toastTitle').innerText = title;
+            document.getElementById('toastMessage').innerText = message;
+            toast.classList.remove('hidden');
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3500);
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('modalContainer');
+            modal.classList.add('hidden');
+        }
+
+        function updateNavigation() {
+            const nav = document.getElementById('navLinksContainer');
+            const bottomNav = document.getElementById('mobileBottomNav');
+            const drawerLinks = document.getElementById('mobileDrawerLinks');
+            let sidebarHtml = '';
+            let bottomNavHtml = '';
+            let drawerHtml = '';
+
+            const isOfficer = mockState.currentUser && mockState.currentUser.isQrOfficer === true;
+
+            if (mockState.currentRole === 'walikelas') {
+                sidebarHtml = `
+                    <div class="text-[10px] uppercase tracking-wider text-teal-300 font-bold px-3 py-1">MENU UTAMA WALI KELAS</div>
+                    <a href="#" onclick="renderView('dashboard')" class="flex items-center space-x-3 px-3.5 py-3 rounded-xl transition ${currentActiveRoute === 'dashboard' ? 'bg-santara-teal text-white shadow-md' : 'hover:bg-white/10 text-gray-200'}"><i class="fa-solid fa-chart-pie w-5"></i><span>Dashboard Kelas</span></a>
+                    <a href="#" onclick="renderView('qrAbsensi')" class="flex items-center space-x-3 px-3.5 py-3 rounded-xl transition ${currentActiveRoute === 'qrAbsensi' ? 'bg-santara-teal text-white shadow-md' : 'hover:bg-white/10 text-gray-200'}"><i class="fa-solid fa-qrcode w-5"></i><span>Absensi QR & Set Waktu</span></a>
+                    <a href="#" onclick="renderView('students')" class="flex items-center space-x-3 px-3.5 py-3 rounded-xl transition ${currentActiveRoute === 'students' ? 'bg-santara-teal text-white shadow-md' : 'hover:bg-white/10 text-gray-200'}"><i class="fa-solid fa-users w-5"></i><span>Data Siswa</span></a>
+                    <a href="#" onclick="renderView('accounts')" class="flex items-center space-x-3 px-3.5 py-3 rounded-xl transition ${currentActiveRoute === 'accounts' ? 'bg-santara-teal text-white shadow-md' : 'hover:bg-white/10 text-gray-200'}"><i class="fa-solid fa-user-gear w-5"></i><span>Akun Siswa</span></a>
+                    <a href="#" onclick="renderView('permissions')" class="flex items-center space-x-3 px-3.5 py-3 rounded-xl transition ${currentActiveRoute === 'permissions' ? 'bg-santara-teal text-white shadow-md' : 'hover:bg-white/10 text-gray-200'}"><i class="fa-solid fa-envelope-open-text w-5"></i><span>Verifikasi Izin & Sakit</span></a>
+                    
+                    <div class="text-[10px] uppercase tracking-wider text-teal-300 font-bold px-3 pt-3 pb-1">KEDISIPLINAN & BK</div>
+                    <a href="#" onclick="renderView('counseling')" class="flex items-center space-x-3 px-3.5 py-3 rounded-xl transition ${currentActiveRoute === 'counseling' ? 'bg-santara-teal text-white shadow-md' : 'hover:bg-white/10 text-gray-200'}"><i class="fa-solid fa-user-shield w-5"></i><span>Pembinaan & Konseling</span></a>
+                    <a href="#" onclick="renderView('violations')" class="flex items-center space-x-3 px-3.5 py-3 rounded-xl transition ${currentActiveRoute === 'violations' ? 'bg-santara-teal text-white shadow-md' : 'hover:bg-white/10 text-gray-200'}"><i class="fa-solid fa-triangle-exclamation w-5"></i><span>Catat Pelanggaran & Poin</span></a>
+                    <a href="#" onclick="renderView('homeVisit')" class="flex items-center space-x-3 px-3.5 py-3 rounded-xl transition ${currentActiveRoute === 'homeVisit' ? 'bg-santara-teal text-white shadow-md' : 'hover:bg-white/10 text-gray-200'}"><i class="fa-solid fa-house-chimney-user w-5"></i><span>Home Visit & Dokumen</span></a>
+
+                    <div class="text-[10px] uppercase tracking-wider text-teal-300 font-bold px-3 pt-3 pb-1">PENCARIAN & LAPORAN</div>
+                    <a href="#" onclick="renderView('cariCetakIndiv')" class="flex items-center space-x-3 px-3.5 py-3 rounded-xl transition ${currentActiveRoute === 'cariCetakIndiv' ? 'bg-santara-teal text-white shadow-md' : 'hover:bg-white/10 text-gray-200'}"><i class="fa-solid fa-id-card-clip w-5"></i><span>Cari & Cetak Data Individu</span></a>
+                    <a href="#" onclick="renderView('reports')" class="flex items-center space-x-3 px-3.5 py-3 rounded-xl transition ${currentActiveRoute === 'reports' ? 'bg-santara-teal text-white shadow-md' : 'hover:bg-white/10 text-gray-200'}"><i class="fa-solid fa-print w-5"></i><span>Pusat Laporan A4</span></a>
+                    <a href="#" onclick="renderView('settings')" class="flex items-center space-x-3 px-3.5 py-3 rounded-xl transition ${currentActiveRoute === 'settings' ? 'bg-santara-teal text-white shadow-md' : 'hover:bg-white/10 text-gray-200'}"><i class="fa-solid fa-gear w-5"></i><span>Pengaturan Akun & Sekolah</span></a>
+                `;
+
+                bottomNavHtml = `
+                    <button onclick="renderView('dashboard')" class="flex flex-col items-center py-1 ${currentActiveRoute === 'dashboard' ? 'text-santara-teal font-extrabold' : 'text-gray-500'}"><i class="fa-solid fa-chart-pie text-lg"></i><span>Home</span></button>
+                    <button onclick="renderView('qrAbsensi')" class="flex flex-col items-center py-1 ${currentActiveRoute === 'qrAbsensi' ? 'text-santara-teal font-extrabold' : 'text-gray-500'}"><i class="fa-solid fa-qrcode text-lg"></i><span>QR</span></button>
+                    <button onclick="renderView('students')" class="flex flex-col items-center py-1 ${currentActiveRoute === 'students' ? 'text-santara-teal font-extrabold' : 'text-gray-500'}"><i class="fa-solid fa-users text-lg"></i><span>Siswa</span></button>
+                    <button onclick="renderView('permissions')" class="flex flex-col items-center py-1 ${currentActiveRoute === 'permissions' ? 'text-santara-teal font-extrabold' : 'text-gray-500'}"><i class="fa-solid fa-envelope-open-text text-lg"></i><span>Izin</span></button>
+                    <button onclick="toggleMobileDrawer()" class="flex flex-col items-center py-1 text-gray-500"><i class="fa-solid fa-bars text-lg"></i><span>Menu</span></button>
+                `;
+
+                drawerHtml = `
+                    <button onclick="renderView('dashboard'); toggleMobileDrawer();" class="p-3 bg-gray-50 rounded-2xl text-left border font-bold text-santara-navy"><i class="fa-solid fa-chart-pie mr-2 text-santara-teal"></i>Dashboard</button>
+                    <button onclick="renderView('qrAbsensi'); toggleMobileDrawer();" class="p-3 bg-gray-50 rounded-2xl text-left border font-bold text-santara-navy"><i class="fa-solid fa-qrcode mr-2 text-santara-teal"></i>Absensi QR</button>
+                    <button onclick="renderView('students'); toggleMobileDrawer();" class="p-3 bg-gray-50 rounded-2xl text-left border font-bold text-santara-navy"><i class="fa-solid fa-users mr-2 text-santara-teal"></i>Data Siswa</button>
+                    <button onclick="renderView('accounts'); toggleMobileDrawer();" class="p-3 bg-gray-50 rounded-2xl text-left border font-bold text-santara-navy"><i class="fa-solid fa-user-gear mr-2 text-santara-teal"></i>Akun Siswa</button>
+                    <button onclick="renderView('permissions'); toggleMobileDrawer();" class="p-3 bg-gray-50 rounded-2xl text-left border font-bold text-santara-navy"><i class="fa-solid fa-envelope-open-text mr-2 text-santara-teal"></i>Verifikasi Izin</button>
+                    <button onclick="renderView('counseling'); toggleMobileDrawer();" class="p-3 bg-gray-50 rounded-2xl text-left border font-bold text-santara-navy"><i class="fa-solid fa-user-shield mr-2 text-santara-teal"></i>Konseling BK</button>
+                    <button onclick="renderView('violations'); toggleMobileDrawer();" class="p-3 bg-gray-50 rounded-2xl text-left border font-bold text-santara-navy"><i class="fa-solid fa-triangle-exclamation mr-2 text-santara-teal"></i>Pelanggaran</button>
+                    <button onclick="renderView('homeVisit'); toggleMobileDrawer();" class="p-3 bg-gray-50 rounded-2xl text-left border font-bold text-santara-navy"><i class="fa-solid fa-house-chimney-user mr-2 text-santara-teal"></i>Home Visit</button>
+                    <button onclick="renderView('cariCetakIndiv'); toggleMobileDrawer();" class="p-3 bg-gray-50 rounded-2xl text-left border font-bold text-santara-navy"><i class="fa-solid fa-id-card-clip mr-2 text-santara-teal"></i>Cetak Individu</button>
+                    <button onclick="renderView('reports'); toggleMobileDrawer();" class="p-3 bg-gray-50 rounded-2xl text-left border font-bold text-santara-navy"><i class="fa-solid fa-print mr-2 text-santara-teal"></i>Pusat Laporan</button>
+                    <button onclick="renderView('settings'); toggleMobileDrawer();" class="p-3 bg-gray-50 rounded-2xl text-left border font-bold text-santara-navy"><i class="fa-solid fa-gear mr-2 text-santara-teal"></i>Pengaturan Akun</button>
+                `;
+            } else {
+                sidebarHtml = `
+                    <div class="text-[10px] uppercase tracking-wider text-teal-300 font-bold px-3 py-1">${isOfficer ? 'KADER PETUGAS QR' : 'MENU UTAMA SISWA'}</div>
+                    <a href="#" onclick="renderView('dashboard')" class="flex items-center space-x-3 px-3.5 py-3 rounded-xl transition ${currentActiveRoute === 'dashboard' ? 'bg-santara-teal text-white shadow-md' : 'hover:bg-white/10 text-gray-200'}"><i class="fa-solid fa-house w-5"></i><span>Dashboard Pribadi</span></a>
+                    ${isOfficer ? `<a href="#" onclick="renderView('officerQRView')" class="flex items-center space-x-3 px-3.5 py-3 rounded-xl transition ${currentActiveRoute === 'officerQRView' ? 'bg-santara-teal text-white shadow-md' : 'hover:bg-white/10 text-gray-200'}"><i class="fa-solid fa-qrcode w-5 animate-pulse text-yellow-300"></i><span>Panel Relai QR Pos</span></a>` : ''}
+                    <a href="#" onclick="renderView('scanQR')" class="flex items-center space-x-3 px-3.5 py-3 rounded-xl transition ${currentActiveRoute === 'scanQR' ? 'bg-santara-teal text-white shadow-md' : 'hover:bg-white/10 text-gray-200'}"><i class="fa-solid fa-camera w-5"></i><span>Scan QR Mandiri</span></a>
+                    <a href="#" onclick="renderStudentProfileView(mockState.currentUser.id)" class="flex items-center space-x-3 px-3.5 py-3 rounded-xl transition ${currentActiveRoute === 'myProfile' ? 'bg-santara-teal text-white shadow-md' : 'hover:bg-white/10 text-gray-200'}"><i class="fa-solid fa-id-card w-5"></i><span>Profil & Biodata</span></a>
+                    <a href="#" onclick="renderView('myPermission')" class="flex items-center space-x-3 px-3.5 py-3 rounded-xl transition ${currentActiveRoute === 'myPermission' ? 'bg-santara-teal text-white shadow-md' : 'hover:bg-white/10 text-gray-200'}"><i class="fa-solid fa-file-pen w-5"></i><span>Ajukan Izin / Sakit</span></a>
+                    <a href="#" onclick="handleLogout()" class="flex items-center space-x-3 px-3.5 py-3 rounded-xl transition hover:bg-red-500/20 text-red-300 mt-6"><i class="fa-solid fa-power-off w-5"></i><span>Keluar Sistem</span></a>
+                `;
+
+                bottomNavHtml = `
+                    <button onclick="renderView('dashboard')" class="flex flex-col items-center py-1 ${currentActiveRoute === 'dashboard' ? 'text-santara-teal font-extrabold' : 'text-gray-500'}"><i class="fa-solid fa-house text-lg"></i><span>Home</span></button>
+                    ${isOfficer ? `<button onclick="renderView('officerQRView')" class="flex flex-col items-center py-1 ${currentActiveRoute === 'officerQRView' ? 'text-santara-teal font-extrabold' : 'text-gray-500'}"><i class="fa-solid fa-qrcode text-lg"></i><span>Relai</span></button>` : ''}
+                    <button onclick="renderView('scanQR')" class="flex flex-col items-center py-1 ${currentActiveRoute === 'scanQR' ? 'text-santara-teal font-extrabold' : 'text-gray-500'}"><i class="fa-solid fa-camera text-lg"></i><span>Scan</span></button>
+                    <button onclick="renderStudentProfileView(mockState.currentUser.id)" class="flex flex-col items-center py-1 ${currentActiveRoute === 'myProfile' ? 'text-santara-teal font-extrabold' : 'text-gray-500'}"><i class="fa-solid fa-id-card text-lg"></i><span>Profil</span></button>
+                    <button onclick="renderView('myPermission')" class="flex flex-col items-center py-1 ${currentActiveRoute === 'myPermission' ? 'text-santara-teal font-extrabold' : 'text-gray-500'}"><i class="fa-solid fa-file-pen text-lg"></i><span>Izin</span></button>
+                `;
+
+                drawerHtml = `
+                    <button onclick="renderView('dashboard'); toggleMobileDrawer();" class="p-3 bg-gray-50 rounded-2xl text-left border font-bold text-santara-navy"><i class="fa-solid fa-house mr-2 text-santara-teal"></i>Dashboard</button>
+                    <button onclick="renderView('scanQR'); toggleMobileDrawer();" class="p-3 bg-gray-50 rounded-2xl text-left border font-bold text-santara-navy"><i class="fa-solid fa-camera mr-2 text-santara-teal"></i>Scan QR</button>
+                    <button onclick="renderStudentProfileView(mockState.currentUser.id); toggleMobileDrawer();" class="p-3 bg-gray-50 rounded-2xl text-left border font-bold text-santara-navy"><i class="fa-solid fa-id-card mr-2 text-santara-teal"></i>Profil & Biodata</button>
+                    <button onclick="renderView('myPermission'); toggleMobileDrawer();" class="p-3 bg-gray-50 rounded-2xl text-left border font-bold text-santara-navy"><i class="fa-solid fa-file-pen mr-2 text-santara-teal"></i>Ajukan Izin</button>
+                    <button onclick="handleLogout(); toggleMobileDrawer();" class="p-3 bg-red-50 rounded-2xl text-left border border-red-200 font-bold text-red-600 col-span-2"><i class="fa-solid fa-power-off mr-2"></i>Keluar Sistem</button>
+                `;
+            }
+            if(nav) nav.innerHTML = sidebarHtml;
+            if(bottomNav) bottomNav.innerHTML = bottomNavHtml;
+            if(drawerLinks) drawerLinks.innerHTML = drawerHtml;
+            if (mockState.currentRole === 'petugas') {
+                document.querySelectorAll("#navLinksContainer a, #mobileBottomNav button, #mobileDrawerLinks button").forEach(el => {
+                    const oc = el.getAttribute('onclick') || '';
+                    if (/'dashboard'|renderStudentProfileView|'myPermission'/.test(oc)) el.remove();
+                });
+            }
+        }
+
+        function renderView(route) {
+            if (activeHtml5QrCode && route !== 'scanQR') {
+                try {
+                    activeHtml5QrCode.stop().then(() => {
+                        activeHtml5QrCode.clear();
+                        activeHtml5QrCode = null;
+                    }).catch(e => { activeHtml5QrCode = null; });
+                } catch(e) { activeHtml5QrCode = null; }
+            }
+
+            if (mockState.currentRole === 'petugas' && ['dashboard', 'myProfile', 'myPermission'].includes(route)) route = 'scanQR';
+            currentActiveRoute = route;
+            updateNavigation();
+            recalculateStats();
+            const area = document.getElementById('mainContentArea');
+            
+            const titles = {
+                dashboard: mockState.currentRole === 'walikelas' ? `Dashboard Wali Kelas • ${mockState.schoolConfig.className}` : 'Dashboard Pribadi Siswa',
+                qrAbsensi: 'Absensi QR Code Dinamis & Pengaturan Waktu',
+                students: `Direktori Data Master Siswa ${mockState.schoolConfig.className}`,
+                accounts: 'Manajemen Akun Siswa & Impor Data',
+                permissions: 'Verifikasi Pengajuan Izin & Sakit Siswa',
+                counseling: 'Manajemen Pembinaan & Konseling BK',
+                violations: 'Pencatatan Pelanggaran & Kuota Poin Kedisiplinan',
+                homeVisit: 'Home Visit & Dokumentasi Kunjungan',
+                reports: 'Pusat Laporan A4 Kedinasan',
+                cariCetakIndiv: 'Pencarian Cepat & Cetak Data Individu Siswa (360°)',
+                scanQR: 'Kamera Pemindai QR Absensi HUD',
+                myPermission: 'Pengajuan Surat Izin / Sakit Mandiri',
+                officerQRView: 'Panel Relai QR Dinamis — Petugas Pos',
+                settings: 'Pengaturan Identitas Sekolah & Akun Wali Kelas'
+            };
+            document.getElementById('pageTitle').innerText = titles[route] || 'SANTARA Sistem';
+
+            if (route === 'dashboard') {
+                if (mockState.currentRole === 'walikelas') renderWaliDashboard(area);
+                else renderStudentDashboard(area);
+            } else if (route === 'qrAbsensi') renderQRAbsensiView(area);
+            else if (route === 'students') renderStudentsView(area);
+            else if (route === 'accounts') renderAccountsView(area);
+            else if (route === 'permissions') renderPermissionsView(area);
+            else if (route === 'violations') renderViolationsView(area);
+            else if (route === 'counseling') renderCounselingView(area);
+            else if (route === 'homeVisit') renderHomeVisitView(area);
+            else if (route === 'reports') renderReportsView(area);
+            else if (route === 'cariCetakIndiv') renderCariCetakIndivView(area);
+            else if (route === 'scanQR') renderScanQRView(area);
+            else if (route === 'myPermission') renderStudentPermissionForm(area);
+            else if (route === 'officerQRView') renderOfficerQRView(area);
+            else if (route === 'settings') renderSettingsView(area);
+        }
+
+        function renderWaliDashboard(container) {
+            const s = mockState.stats;
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="relative rounded-3xl overflow-hidden shadow-2xl text-white p-6 md:p-10 flex flex-col justify-center min-h-[220px]">
+                        <div class="absolute inset-0 bg-cover bg-center filter brightness-50 scale-105 transform transition-transform duration-700" style="background-image: url('https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=1200&auto=format&fit=crop&q=80');"></div>
+                        <div class="absolute inset-0 bg-gradient-to-r from-santara-navy/90 via-santara-teal/80 to-transparent"></div>
+                        
+                        <div class="relative z-10 space-y-2 max-w-2xl">
+                            <span class="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-xs font-bold tracking-wider uppercase inline-block">${mockState.schoolConfig.schoolName} • TP ${mockState.schoolConfig.academicYear}</span>
+                            <h2 class="text-2xl md:text-3xl font-black tracking-tight">Dashboard Kelas ${mockState.schoolConfig.className}</h2>
+                            <p class="text-xs md:text-sm text-blue-100 font-medium leading-relaxed">Selamat datang, ${mockState.schoolConfig.teacherName}. Sistem pemantauan kehadiran real-time dan manajemen kedisiplinan siswa siap melayani Anda hari ini.</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-xs font-bold text-santara-textSec uppercase tracking-wider mb-3">RINGKASAN KEHADIRAN HARI INI (KLIK KARTU UNTUK DETAIL SISWA)</h3>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+                            <div onclick="openStudentListModal('Total Siswa', mockState.students)" class="bg-white p-4 rounded-2xl border border-santara-border shadow-sm hover:shadow-md hover:border-santara-teal cursor-pointer transition transform hover:-translate-y-1">
+                                <div class="flex items-center justify-between mb-2"><i class="fa-solid fa-users text-santara-navy"></i><span class="text-[10px] text-gray-400 font-bold">100%</span></div>
+                                <h4 class="text-2xl font-extrabold text-santara-navy">${s.totalStudents}</h4>
+                                <p class="text-[11px] text-santara-textSec font-medium mt-0.5">Total Siswa</p>
+                            </div>
+                            <div onclick="openStudentListModal('Hadir', mockState.students.filter(x => x.status === 'HADIR'))" class="bg-white p-4 rounded-2xl border border-santara-border shadow-sm hover:shadow-md hover:border-green-500 cursor-pointer transition transform hover:-translate-y-1">
+                                <div class="flex items-center justify-between mb-2"><i class="fa-solid fa-user-check text-green-600"></i><span class="text-[10px] text-green-600 font-bold">Tepat Waktu</span></div>
+                                <h4 class="text-2xl font-extrabold text-green-700">${s.present}</h4>
+                                <p class="text-[11px] text-santara-textSec font-medium mt-0.5">Hadir</p>
+                            </div>
+                            <div onclick="openStudentListModal('Terlambat', mockState.students.filter(x => x.status === 'TERLAMBAT'))" class="bg-white p-4 rounded-2xl border border-santara-border shadow-sm hover:shadow-md hover:border-yellow-500 cursor-pointer transition transform hover:-translate-y-1">
+                                <div class="flex items-center justify-between mb-2"><i class="fa-solid fa-user-clock text-yellow-600"></i><span class="text-[10px] text-yellow-600 font-bold">> ${mockState.qrSettings.toleranceTime}</span></div>
+                                <h4 class="text-2xl font-extrabold text-yellow-700">${s.late}</h4>
+                                <p class="text-[11px] text-santara-textSec font-medium mt-0.5">Terlambat</p>
+                            </div>
+                            <div onclick="openStudentListModal('Sakit', mockState.students.filter(x => x.status === 'SAKIT'))" class="bg-white p-4 rounded-2xl border border-santara-border shadow-sm hover:shadow-md hover:border-blue-500 cursor-pointer transition transform hover:-translate-y-1">
+                                <div class="flex items-center justify-between mb-2"><i class="fa-solid fa-bed-pulse text-blue-600"></i><span class="text-[10px] text-blue-600 font-bold">Surat Dokter</span></div>
+                                <h4 class="text-2xl font-extrabold text-blue-700">${s.sick}</h4>
+                                <p class="text-[11px] text-santara-textSec font-medium mt-0.5">Sakit</p>
+                            </div>
+                            <div onclick="openStudentListModal('Izin', mockState.students.filter(x => x.status === 'IZIN'))" class="bg-white p-4 rounded-2xl border border-santara-border shadow-sm hover:shadow-md hover:border-purple-500 cursor-pointer transition transform hover:-translate-y-1">
+                                <div class="flex items-center justify-between mb-2"><i class="fa-solid fa-file-invoice text-santara-purple"></i><span class="text-[10px] text-purple-600 font-bold">Disetujui</span></div>
+                                <h4 class="text-2xl font-extrabold text-santara-purple">${s.permitted}</h4>
+                                <p class="text-[11px] text-santara-textSec font-medium mt-0.5">Izin</p>
+                            </div>
+                            <div onclick="openStudentListModal('Alfa', mockState.students.filter(x => x.status === 'ALFA'))" class="bg-white p-4 rounded-2xl border border-santara-border shadow-sm hover:shadow-md hover:border-red-500 cursor-pointer transition transform hover:-translate-y-1">
+                                <div class="flex items-center justify-between mb-2"><i class="fa-solid fa-user-xmark text-red-600"></i><span class="text-[10px] text-red-600 font-bold">Tanpa Ket</span></div>
+                                <h4 class="text-2xl font-extrabold text-red-700">${s.alpha}</h4>
+                                <p class="text-[11px] text-santara-textSec font-medium mt-0.5">Alfa</p>
+                            </div>
+                            <div onclick="openStudentListModal('Belum Tercatat', mockState.students.filter(x => x.status === 'BELUM'))" class="bg-white p-4 rounded-2xl border border-santara-border shadow-sm hover:shadow-md hover:border-gray-400 cursor-pointer transition transform hover:-translate-y-1">
+                                <div class="flex items-center justify-between mb-2"><i class="fa-solid fa-user-slash text-gray-500"></i><span class="text-[10px] text-gray-500 font-bold">Menunggu</span></div>
+                                <h4 class="text-2xl font-extrabold text-gray-700">${s.unrecorded}</h4>
+                                <p class="text-[11px] text-santara-textSec font-medium mt-0.5">Belum Scan</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openStudentListModal(title, studentArray) {
+            const modal = document.getElementById('modalContainer');
+            const box = document.getElementById('modalContentBox');
+            
+            box.innerHTML = `
+                <div class="bg-santara-navy text-white p-4 flex items-center justify-between">
+                    <h3 class="font-bold text-sm">Daftar Detail Siswa — Kategori: ${title} (${studentArray.length} Siswa)</h3>
+                    <button onclick="closeModal()" class="text-white hover:text-gray-300"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+                <div class="p-6 overflow-y-auto max-h-[70vh]">
+                    <div class="space-y-3">
+                        ${studentArray.length === 0 ? '<p class="text-xs text-gray-400 text-center py-6">Tidak ada siswa dalam kategori ini.</p>' : studentArray.map(s => {
+                            let detailInfo = s.time || '-';
+                            if (s.status === 'TERLAMBAT') {
+                                detailInfo = `Telat datang pukul ${s.time} (Toleransi ${mockState.qrSettings.toleranceTime})`;
+                            } else if (s.status === 'SAKIT' || s.status === 'IZIN') {
+                                const foundPerm = mockState.permissions.find(p => p.nis === s.nis);
+                                detailInfo = foundPerm ? foundPerm.reason : 'Izin / Sakit terverifikasi';
+                            }
+                            return `
+                                <div class="p-3.5 bg-gray-50 rounded-2xl border flex items-center justify-between text-xs">
+                                    <div class="flex items-center space-x-3">
+                                        <img src="${s.avatar}" class="w-10 h-10 rounded-xl object-cover border shadow-xs">
+                                        <div>
+                                            <h4 class="font-bold text-santara-navy">${s.name}</h4>
+                                            <p class="text-[10px] text-gray-500">NISN: ${s.nis} • Orang Tua: ${s.parent} (${s.parentPhone || '-'})</p>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold ${s.status === 'HADIR' ? 'bg-green-100 text-green-800' : (s.status === 'TERLAMBAT' ? 'bg-yellow-100 text-yellow-800' : 'bg-blue-100 text-blue-800')}">${s.status}</span>
+                                        <p class="text-[10px] text-gray-600 font-medium mt-1">${detailInfo}</p>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+            modal.classList.add('flex');
+            modal.classList.remove('hidden');
+        }
+
+        function renderStudentDashboard(container) {
+            const user = mockState.students.find(s => s.id === mockState.currentUser.id) || mockState.currentUser;
+            const myViolations = mockState.violations.filter(v => v.nis === user.nis);
+            const dayIndex = new Date().getDate() % mockState.dailyQuotes.length;
+            const todayQuote = mockState.dailyQuotes[dayIndex];
+            const myPoints = getStudentPoints(user);
+
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="bg-gradient-to-r from-santara-teal via-teal-800 to-santara-blue rounded-3xl p-6 md:p-8 text-white shadow-xl flex flex-col md:flex-row items-center justify-between">
+                        <div class="flex items-center space-x-4 mb-4 md:mb-0">
+                            <img src="${user.avatar}" alt="Avatar" class="w-16 h-16 rounded-2xl object-cover border-2 border-white shadow">
+                            <div>
+                                <span class="px-3 py-1 bg-white/25 rounded-full text-xs font-semibold mb-1">${user.isQrOfficer ? 'Kader Petugas QR Absensi' : `Siswa Reguler ${mockState.schoolConfig.className}`}</span>
+                                <h2 class="text-xl md:text-2xl font-bold mt-1">Halo, ${user.name}</h2>
+                                <p class="text-xs text-blue-100">NISN: ${user.nis} • Status Kehadiran Hari Ini: <span class="bg-green-500 text-white px-2 py-0.5 rounded font-bold">${user.status}</span></p>
+                            </div>
+                        </div>
+                        <div class="flex space-x-3 w-full md:w-auto">
+                            <button onclick="renderView('scanQR')" class="flex-1 md:flex-initial px-6 py-3.5 bg-white text-santara-navy hover:bg-gray-100 font-bold rounded-2xl text-xs shadow-xl transition flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-qrcode text-santara-teal text-base"></i>
+                                <span>Scan QR Absensi</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-gradient-to-r from-santara-navy via-indigo-950 to-santara-navy rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden flex items-center justify-between border border-white/10">
+                        <div class="absolute -right-10 -bottom-10 opacity-10 text-9xl"><i class="fa-solid fa-quote-right"></i></div>
+                        <div class="space-y-3 z-10 pr-4">
+                            <div class="flex items-center space-x-2.5">
+                                <span class="px-3 py-1 bg-teal-500 text-white rounded-full text-[10px] font-extrabold uppercase tracking-widest">${todayQuote.type} Hari Ini</span>
+                            </div>
+                            <p class="text-sm md:text-base font-semibold italic text-blue-50 leading-relaxed">"${todayQuote.quote}"</p>
+                            <p class="text-xs text-teal-200 font-bold">— ${todayQuote.author}</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl p-6 border border-red-200 shadow-sm space-y-4">
+                        <div class="flex items-center justify-between border-b pb-3.5">
+                            <div class="flex items-center space-x-2.5 text-red-600">
+                                <i class="fa-solid fa-triangle-exclamation text-lg animate-bounce"></i>
+                                <h3 class="font-extrabold text-santara-navy text-sm uppercase tracking-wide">Notifikasi Pelanggaran & Poin Karakter</h3>
+                            </div>
+                            <span class="px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-black">${myViolations.length} Kasus (Poin: ${myPoints}/100)</span>
+                        </div>
+                        <div class="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                            ${myViolations.length === 0 ? '<p class="text-xs text-gray-400 text-center py-4">Bersih! Anda tidak memiliki catatan pelanggaran.</p>' : myViolations.map(v => `
+                                <div class="p-4 bg-red-50/70 rounded-2xl border-l-4 border-red-600 flex justify-between items-center text-xs">
+                                    <div>
+                                        <div class="flex items-center space-x-2">
+                                            <span class="font-bold text-santara-navy">${v.violation}</span>
+                                            <span class="text-[10px] text-gray-400">• ${v.date}</span>
+                                        </div>
+                                        <p class="text-gray-700 mt-1 font-medium">Tindakan: ${v.action} — <span class="text-red-600 font-extrabold">${v.points} Poin</span></p>
+                                    </div>
+                                    <span class="px-2.5 py-1 bg-white text-red-700 border border-red-200 rounded-lg text-[10px] font-bold shadow-xs">${v.category}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderQRAbsensiView(container) {
+            const qr = mockState.qrSettings;
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="bg-white rounded-3xl p-6 md:p-8 border border-santara-border shadow-sm grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-lg font-bold text-santara-navy">Pengaturan Waktu & Toleransi QR Absensi</h3>
+                            <p class="text-xs text-santara-textSec mt-1">Sesuaikan waktu mulai sesi dan batas toleransi keterlambatan presensi harian ${mockState.schoolConfig.className}.</p>
+                            
+                            <div class="mt-6 space-y-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase">WAKTU MULAI SESI</label>
+                                    <input type="time" id="startTimeInput" value="${qr.startTime}" class="w-full px-3.5 py-3 border rounded-xl text-xs font-medium">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 mb-1.5 uppercase">BATAS TOLERANSI TEPAT WAKTU</label>
+                                    <input type="time" id="toleranceTimeInput" value="${qr.toleranceTime}" class="w-full px-3.5 py-3 border rounded-xl text-xs font-medium">
+                                </div>
+                                <button onclick="saveQRSettings()" class="px-5 py-3 bg-santara-teal hover:bg-teal-800 text-white rounded-xl text-xs font-bold shadow-md transition">Simpan Pengaturan Waktu</button>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col items-center justify-center bg-gray-50 p-6 rounded-3xl border border-gray-200 text-center">
+                            <h4 class="font-bold text-santara-navy text-sm mb-3">Token QR Dinamis Resmi (QRious)</h4>
+                            <div class="bg-white p-3 rounded-2xl border-4 border-santara-navy inline-block shadow-inner mb-3">
+                                <canvas id="qrCanvas" class="w-48 h-48"></canvas>
+                            </div>
+                            <span class="text-xs text-green-600 font-mono font-bold bg-green-50 px-3 py-1 rounded-full">Sesi Aktif & Terenkripsi</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            setTimeout(() => {
+                const canvas = document.getElementById('qrCanvas');
+                if(canvas) {
+                    try {
+                        new QRious({ element: canvas, value: 'SANTARA-QR-XTSM4-' + Date.now(), size: 192 });
+                    } catch(e) { console.warn(e); }
+                }
+            }, 100);
+        }
+
+        function saveQRSettings() {
+            const st = document.getElementById('startTimeInput').value, tl = document.getElementById('toleranceTimeInput').value;
+            run(async () => { const { error } = await sb.from('profiles').update({ qr_start: st, qr_tolerance: tl }).eq('id', mockState.uid); if (error) throw error; },
+                ['Berhasil Disimpan', `Waktu mulai ${st} dan toleransi ${tl} diperbarui.`], 'qrAbsensi');
+        }
+
+        function renderStudentsView(container) {
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="bg-white rounded-3xl p-6 md:p-8 border border-santara-border shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-santara-navy">Data Siswa — Direktori Master Siswa ${mockState.schoolConfig.className}</h3>
+                            <p class="text-xs text-santara-textSec mt-0.5">Fokus pada biodata lengkap, alamat, tombol WhatsApp orang tua, dan titik peta 36 siswa.</p>
+                        </div>
+                        <div class="w-full md:w-72">
+                            <input type="text" id="studentSearchInput" oninput="filterStudentTable(this.value)" placeholder="Pencarian cepat nama atau NISN..." class="w-full p-3 bg-gray-50 border rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-santara-teal">
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl border border-santara-border shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-gray-50 text-santara-textSec uppercase font-semibold border-b border-santara-border">
+                                    <tr>
+                                        <th class="p-3.5">Siswa</th>
+                                        <th class="p-3.5">NISN</th>
+                                        <th class="p-3.5">Orang Tua & WhatsApp</th>
+                                        <th class="p-3.5">Alamat & Maps</th>
+                                        <th class="p-3.5 text-right">Profil 360°</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="studentTableBody" class="divide-y divide-gray-100">
+                                    ${renderStudentTableRows(mockState.students)}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderStudentTableRows(list) {
+            return list.map(s => `
+                <tr class="hover:bg-gray-50 transition">
+                    <td class="p-3.5">
+                        <div class="flex items-center space-x-3">
+                            <img src="${s.avatar}" class="w-10 h-10 rounded-xl object-cover border shadow-xs">
+                            <div>
+                                <span class="font-bold text-santara-navy">${s.name}</span>
+                                <span class="block text-[10px] text-gray-400 font-medium">${s.gender === 'L' ? 'Laki-laki' : 'Perempuan'}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-3.5 font-mono font-bold">${s.nis}</td>
+                    <td class="p-3.5 text-gray-700">
+                        ${s.parent}<br>
+                        <a href="https://wa.me/${s.parentPhone || '628123456789'}" target="_blank" class="inline-flex items-center text-green-600 font-bold hover:underline mt-1 bg-green-50 px-2 py-0.5 rounded-lg border border-green-200">
+                            <i class="fa-brands fa-whatsapp mr-1"></i> WhatsApp Ortu
+                        </a>
+                    </td>
+                    <td class="p-3.5 text-gray-600">
+                        ${s.address}<br>
+                        <a href="${s.mapLink}" target="_blank" class="text-santara-teal font-bold hover:underline inline-flex items-center mt-1"><i class="fa-solid fa-location-dot mr-1"></i> Buka Peta</a>
+                    </td>
+                    <td class="p-3.5 text-right">
+                        <button onclick="renderStudentProfileView(${s.id})" class="px-3.5 py-2 bg-santara-navy hover:bg-blue-900 text-white rounded-semibold text-[11px] shadow-sm transition">Profil 360°</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function filterStudentTable(keyword) {
+            const q = keyword.toLowerCase();
+            const filtered = mockState.students.filter(s => s.name.toLowerCase().includes(q) || s.nis.includes(q));
+            document.getElementById('studentTableBody').innerHTML = renderStudentTableRows(filtered);
+        }
+
+        function renderAccountsView(container) {
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="bg-white rounded-3xl p-6 md:p-8 border border-santara-border shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-santara-navy">Manajemen Akun Siswa & Impor Data</h3>
+                            <p class="text-xs text-santara-textSec mt-0.5">Kelola kredensial login, buat akun baru, reset password, nonaktifkan akun, atau impor data siswa.</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button onclick="openImportCsvModal()" class="px-4 py-3 bg-santara-teal hover:bg-teal-800 text-white rounded-2xl text-xs font-bold transition shadow-md flex items-center space-x-2">
+                                <i class="fa-solid fa-file-arrow-up text-sm"></i>
+                                <span>Impor Data Siswa</span>
+                            </button>
+                            <button onclick="openAddStudentModal()" class="px-4 py-3 bg-santara-blue hover:bg-blue-700 text-white rounded-2xl text-xs font-bold transition shadow-md flex items-center space-x-2">
+                                <i class="fa-solid fa-user-plus text-sm"></i>
+                                <span>Tambah Siswa</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    ${tokenCardHtml()}
+
+                    <div class="bg-white rounded-3xl border border-santara-border shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-gray-50 text-santara-textSec uppercase font-semibold border-b border-santara-border">
+                                    <tr>
+                                        <th class="p-3.5">Nama</th>
+                                        <th class="p-3.5">No. HP</th>
+                                        <th class="p-3.5">Status Akun</th>
+                                        <th class="p-3.5">Absen Hari Ini</th>
+                                        <th class="p-3.5 text-right">Aksi Kelola</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    ${mockState.students.map(s => `
+                                        <tr class="hover:bg-gray-50 transition">
+                                            <td class="p-3.5 font-bold text-santara-navy">
+                                                <span>${s.name}</span>
+                                                <span class="block text-[10px] text-gray-400 font-mono">NISN: ${s.nis}</span>
+                                            </td>
+                                            <td class="p-3.5 font-mono font-medium">${s.phone || '-'}</td>
+                                            <td class="p-3.5">
+                                                ${s.accountStatus === 'Aktif' ? 
+                                                    `<span class="px-2.5 py-1 bg-green-100 text-green-800 rounded-full font-bold text-[10px]">Aktif</span>` : 
+                                                    `<span class="px-2.5 py-1 bg-gray-200 text-gray-700 rounded-full font-bold text-[10px]">Nonaktif</span>`}
+                                            </td>
+                                            <td class="p-3.5 text-gray-500">${s.lastLogin || '-'}</td>
+                                            <td class="p-3.5 text-right space-x-2 whitespace-nowrap">
+                                                <button onclick="openEditBiodataModal(${s.id})" class="px-3 py-1.5 bg-white border hover:bg-gray-100 text-santara-navy rounded-xl font-semibold text-[11px]">Edit</button>
+                                                <button onclick="deleteStudent(${s.id})" class="px-3 py-1.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-xl font-semibold text-[11px]">Hapus</button>
+                                                <button onclick="toggleStudentAccountStatus('${s.nis}')" class="px-3 py-1.5 bg-white border ${s.accountStatus === 'Aktif' ? 'border-red-200 text-red-600 hover:bg-red-50' : 'border-green-200 text-green-600 hover:bg-green-50'} rounded-xl font-semibold text-[11px]">
+                                                    ${s.accountStatus === 'Aktif' ? 'Nonaktifkan' : 'Aktifkan'}
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openImportCsvModal() {
+            const modal = document.getElementById('modalContainer');
+            const box = document.getElementById('modalContentBox');
+            box.innerHTML = `
+                <div class="bg-santara-navy text-white p-4 flex items-center justify-between">
+                    <h3 class="font-bold text-sm">Impor Data Siswa (Format CSV / Teks)</h3>
+                    <button onclick="closeModal()" class="text-white hover:text-gray-300"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+                <div class="p-6 space-y-4 text-xs">
+                    <div>
+                        <label class="block font-bold mb-1">SALIN ATAU UNGGAH DATA SISWA (Format: NIS, Nama, L/P, NoTelp)</label>
+                        <textarea id="importCsvText" rows="6" class="w-full p-3 border rounded-xl font-mono text-[11px]" placeholder="260137, Budi Santoso, L, 081234567800&#10;260138, Siti Aminah, P, 081234567801"></textarea>
+                    </div>
+                    <button onclick="processImportCsv()" class="w-full py-3.5 bg-santara-teal text-white font-bold rounded-xl shadow-md">Proses Impor & Masukkan ke Direktori</button>
+                </div>
+            `;
+            modal.classList.add('flex');
+            modal.classList.remove('hidden');
+        }
+
+        function processImportCsv() {
+            const text = document.getElementById('importCsvText').value;
+            if(!text.trim()) { showToast('Peringatan', 'Data CSV kosong.'); return; }
+            const seen = new Set(mockState.students.map(x => x.nis)), rows = [];
+            text.split('\n').forEach(line => {
+                const p = line.split(',');
+                if (p.length < 2) return;
+                const nis = p[0].trim(), name = p[1].trim();
+                if (!nis || !name || seen.has(nis)) return;
+                seen.add(nis);
+                rows.push({ nis, name, gender: (p[2] || 'L').trim().toUpperCase() === 'P' ? 'P' : 'L', phone: (p[3] || '').trim() });
+            });
+            if (!rows.length) { showToast('Peringatan', 'Tidak ada siswa baru yang valid / NISN sudah terdaftar.'); return; }
+            run(async () => { const { error } = await sb.from('students').insert(rows); if (error) throw error; closeModal(); },
+                ['Berhasil Impor', `${rows.length} siswa baru berhasil diimpor ke sistem.`], 'accounts');
+        }
+
+        function openAddStudentModal() {
+            const modal = document.getElementById('modalContainer');
+            const box = document.getElementById('modalContentBox');
+            box.innerHTML = `
+                <div class="bg-santara-navy text-white p-4 flex items-center justify-between">
+                    <h3 class="font-bold text-sm">Tambah Siswa Baru Kelas ${mockState.schoolConfig.className}</h3>
+                    <button onclick="closeModal()" class="text-white hover:text-gray-300"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+                <div class="p-6 space-y-3.5 text-xs">
+                    <div>
+                        <label class="block font-bold mb-1">NAMA LENGKAP SISWA</label>
+                        <input type="text" id="newStudName" class="w-full p-3 border rounded-xl" placeholder="Nama siswa...">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">NIS / NISN</label>
+                        <input type="text" id="newStudNis" class="w-full p-3 border rounded-xl" placeholder="260137">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-bold mb-1">JENIS KELAMIN</label>
+                            <select id="newStudGender" class="w-full p-3 border rounded-xl">
+                                <option value="L">Laki-laki</option>
+                                <option value="P">Perempuan</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">NO. TELEPON</label>
+                            <input type="text" id="newStudPhone" class="w-full p-3 border rounded-xl" value="08123456700">
+                        </div>
+                    </div>
+                    <button onclick="submitNewStudent()" class="w-full py-3.5 bg-santara-teal text-white font-bold rounded-xl mt-2 shadow-md">Simpan Siswa Baru</button>
+                </div>
+            `;
+            modal.classList.add('flex');
+            modal.classList.remove('hidden');
+        }
+
+        function submitNewStudent() {
+            const name = document.getElementById('newStudName').value.trim();
+            const nis = document.getElementById('newStudNis').value.trim();
+            const gender = document.getElementById('newStudGender').value;
+            const phone = document.getElementById('newStudPhone').value.trim();
+            if(!name || !nis) { showToast('Peringatan', 'Nama dan NISN wajib diisi.'); return; }
+            run(async () => { const { error } = await sb.from('students').insert({ nis, name, gender, phone }); if (error) throw error; closeModal(); },
+                ['Berhasil', `Siswa ${name} berhasil ditambahkan.`], 'accounts');
+        }
+
+        function deleteStudent(id) {
+            const st = mockState.students.find(x => x.id === id);
+            if (!st || !confirm(`Hapus siswa "${st.name}" beserta seluruh absensi, pelanggaran, konseling & home visit-nya? Tindakan ini permanen.`)) return;
+            run(async () => { const { error } = await sb.from('students').delete().eq('id', id); if (error) throw error; },
+                ['Berhasil', 'Data siswa dihapus.'], 'accounts');
+        }
+
+        function toggleStudentAccountStatus(nis) {
+            const st = mockState.students.find(x => x.nis === nis);
+            if (!st) return;
+            run(async () => { const { error } = await sb.from('students').update({ is_active: st.accountStatus !== 'Aktif' }).eq('id', st.id); if (error) throw error; },
+                ['Status Diperbarui', `Status ${st.name} berhasil diubah.`], 'accounts');
+        }
+        function tokenCardHtml() {
+            const rows = mockState.tokens.map(t => `
+                <div class="flex items-center justify-between bg-gray-50 border border-santara-border rounded-2xl px-4 py-3">
+                    <div><span class="font-mono font-black text-lg tracking-widest text-santara-navy">${t.token}</span>
+                    <span class="block text-[10px] text-gray-500">${t.label} • berlaku s/d ${t.expiresText}</span></div>
+                    <div class="space-x-2 whitespace-nowrap">
+                        <button onclick="copyToken('${t.token}')" class="px-3 py-1.5 bg-white border hover:bg-gray-100 text-santara-navy rounded-xl font-semibold text-[11px]">Salin</button>
+                        <button onclick="revokeToken(${t.id})" class="px-3 py-1.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 rounded-xl font-semibold text-[11px]">Cabut</button>
+                    </div>
+                </div>`).join('') || '<p class="text-xs text-gray-400">Belum ada token aktif.</p>';
+            return `
+                <div class="bg-white rounded-3xl p-6 md:p-8 border border-santara-border shadow-sm space-y-4">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div>
+                            <h3 class="text-lg font-bold text-santara-navy">Token Akses Harian Kader QR</h3>
+                            <p class="text-xs text-santara-textSec mt-0.5">Bagikan token ke Siswa Kader untuk membuka pemindai QR. Berlaku sampai pukul 23:59 WIB hari ini.</p>
+                        </div>
+                        <button onclick="generateToken()" class="px-4 py-3 bg-santara-teal hover:bg-teal-800 text-white rounded-2xl text-xs font-bold transition shadow-md flex items-center space-x-2"><i class="fa-solid fa-key text-sm"></i><span>Buat Token Baru</span></button>
+                    </div>
+                    <div class="space-y-2">${rows}</div>
+                </div>`;
+        }
+        function generateToken() {
+            const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', buf = new Uint32Array(8);
+            crypto.getRandomValues(buf);
+            const token = Array.from(buf, n => abc[n % abc.length]).join('');
+            run(async () => { const { error } = await sb.from('class_tokens').insert({ token, label: 'Kader QR', expires_at: `${todayISO()}T23:59:59+07:00` }); if (error) throw error; },
+                ['Token Dibuat', `Token ${token} aktif sampai 23:59 WIB.`], 'accounts');
+        }
+        function revokeToken(id) {
+            run(async () => { const { error } = await sb.from('class_tokens').update({ is_active: false }).eq('id', id); if (error) throw error; },
+                ['Berhasil', 'Token dicabut.'], 'accounts');
+        }
+        function copyToken(t) {
+            (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => showToast('Disalin', `Token ${t} disalin.`)).catch(() => showToast('Token', t));
+        }
+
+        function renderStudentProfileView(studentId) {
+            if ((mockState.currentRole === 'siswa' || mockState.currentRole === 'petugas') && mockState.currentUser.id !== studentId) {
+                studentId = mockState.currentUser.id;
+            }
+
+            const s = mockState.students.find(x => x.id === studentId) || mockState.students[0];
+            const container = document.getElementById('mainContentArea');
+            const cs = mockState.counseling.filter(c => c.nis === s.nis);
+            const viols = mockState.violations.filter(v => v.nis === s.nis);
+            const hvs = mockState.homeVisits.filter(h => h.nis === s.nis);
+            const studentPoints = getStudentPoints(s);
+
+            container.innerHTML = `
+                <div class="space-y-6 max-w-4xl mx-auto pb-12">
+                    <div class="bg-gradient-to-r from-santara-navy via-slate-900 to-santara-teal rounded-3xl p-6 md:p-8 text-white shadow-xl flex flex-col md:flex-row items-center justify-between">
+                        <div class="flex items-center space-x-4 mb-4 md:mb-0">
+                            <img src="${s.avatar}" alt="Avatar" class="w-20 h-20 rounded-2xl object-cover border-4 border-white/30 shadow-md">
+                            <div>
+                                <span class="px-3 py-1 bg-white/25 rounded-full text-[10px] font-bold">${s.isQrOfficer ? 'Kader Petugas QR' : `Siswa ${mockState.schoolConfig.className}`}</span>
+                                <h2 class="text-xl md:text-2xl font-black mt-1">${s.name}</h2>
+                                <p class="text-xs text-blue-100 mt-0.5">NISN: <span class="font-mono font-bold">${s.nis}</span> • Poin Karakter: <span class="bg-green-500 text-white px-2 py-0.5 rounded font-bold">${studentPoints}/100</span></p>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="openEditBiodataModal(${s.id})" class="px-4 py-2.5 bg-white text-santara-navy hover:bg-blue-50 rounded-2xl text-xs font-bold shadow-md transition flex items-center space-x-2">
+                                <i class="fa-solid fa-pen-to-square text-santara-teal"></i><span>Edit Data & Foto Lokal</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl p-6 md:p-8 border border-santara-border shadow-sm space-y-4">
+                        <div class="flex items-center space-x-3 border-b pb-3.5">
+                            <div class="w-9 h-9 rounded-xl bg-teal-50 text-santara-teal flex items-center justify-center font-black text-sm">1</div>
+                            <h3 class="font-extrabold text-santara-navy text-sm uppercase tracking-wider">1. Data Diri & Orang Tua</h3>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+                            <div class="space-y-3 text-gray-700">
+                                <div class="flex justify-between border-b pb-2"><span class="text-gray-400 font-medium">Nama Lengkap</span><span class="font-bold text-santara-navy">${s.name}</span></div>
+                                <div class="flex justify-between border-b pb-2"><span class="text-gray-400 font-medium">NISN</span><span class="font-mono font-bold">${s.nis}</span></div>
+                                <div class="flex justify-between border-b pb-2"><span class="text-gray-400 font-medium">Jenis Kelamin</span><span class="font-bold">${s.gender === 'L' ? 'Laki-laki' : 'Perempuan'}</span></div>
+                                <div class="flex justify-between border-b pb-2"><span class="text-gray-400 font-medium">No. Telepon Siswa</span><span class="font-mono">${s.phone || '-'}</span></div>
+                            </div>
+                            <div class="space-y-3 text-gray-700">
+                                <div class="flex justify-between border-b pb-2"><span class="text-gray-400 font-medium">Nama Orang Tua / Wali</span><span class="font-bold text-santara-navy">${s.parent || '-'}</span></div>
+                                <div class="flex justify-between border-b pb-2"><span class="text-gray-400 font-medium">WhatsApp Orang Tua</span><a href="https://wa.me/${s.parentPhone}" target="_blank" class="text-green-600 font-bold hover:underline"><i class="fa-brands fa-whatsapp mr-1"></i>${s.parentPhone || '-'}</a></div>
+                                <div class="flex justify-between border-b pb-2"><span class="text-gray-400 font-medium">Alamat Tempat Tinggal</span><span class="font-medium">${s.address || 'Kendal'}</span></div>
+                                <div class="flex justify-between items-center pt-1"><span class="text-gray-400 font-medium">Titik Maps</span><a href="${s.mapLink}" target="_blank" class="text-santara-teal font-bold hover:underline bg-teal-50 px-3 py-1 rounded-xl border border-teal-200"><i class="fa-solid fa-location-dot mr-1"></i> Buka Peta</a></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl p-6 md:p-8 border border-santara-border shadow-sm space-y-4">
+                        <div class="flex items-center space-x-3 border-b pb-3.5">
+                            <div class="w-9 h-9 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center font-black text-sm">2</div>
+                            <h3 class="font-extrabold text-santara-navy text-sm uppercase tracking-wider">2. Catatan Pembinaan & Konseling BK (Detail)</h3>
+                        </div>
+                        <div class="space-y-3 text-xs">
+                            ${cs.length > 0 ? cs.map(c => `
+                                <div class="p-4 bg-purple-50/50 rounded-2xl border border-purple-200 space-y-2">
+                                    <div class="flex justify-between font-bold text-santara-navy"><span class="text-sm">${c.category}</span><span class="text-gray-400">${c.date}</span></div>
+                                    <p class="text-gray-700 font-medium"><strong>Uraian Masalah:</strong> ${c.description}</p>
+                                    <p class="text-santara-teal font-bold">Langkah Penanganan: ${c.action}</p>
+                                    <p class="text-green-700 font-semibold">Hasil: ${c.result}</p>
+                                </div>
+                            `).join('') : '<p class="text-gray-400 text-xs py-2 font-medium">Belum ada catatan pembinaan atau konseling.</p>'}
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl p-6 md:p-8 border border-santara-border shadow-sm space-y-4">
+                        <div class="flex items-center space-x-3 border-b pb-3.5">
+                            <div class="w-9 h-9 rounded-xl bg-red-50 text-red-700 flex items-center justify-center font-black text-sm">3</div>
+                            <h3 class="font-extrabold text-santara-navy text-sm uppercase tracking-wider">3. Riwayat Pelanggaran & Poin Karakter (Detail)</h3>
+                        </div>
+                        <div class="flex items-center justify-between bg-red-50 p-4 rounded-2xl border border-red-200 text-xs font-bold">
+                            <span class="text-gray-700">Saldo Poin Tata Tertib Saat Ini:</span>
+                            <span class="text-red-700 font-black text-sm">${studentPoints} / 100 Poin</span>
+                        </div>
+                        <div class="space-y-2.5 text-xs">
+                            ${viols.length > 0 ? viols.map(v => `
+                                <div class="p-4 bg-gray-50 rounded-2xl border flex justify-between items-center">
+                                    <div>
+                                        <span class="font-bold text-santara-navy text-sm">${v.violation}</span>
+                                        <p class="text-gray-600 text-[11px] font-medium mt-1">Kategori: <strong>${v.category}</strong> • Tindakan: ${v.action} • Tanggal: ${v.date}</p>
+                                    </div>
+                                    <span class="px-3 py-1.5 bg-red-100 text-red-700 rounded-xl font-black text-xs">${v.points} Poin</span>
+                                </div>
+                            `).join('') : '<p class="text-gray-400 text-xs py-2 font-medium">Bersih! Tidak ada catatan pelanggaran.</p>'}
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-3xl p-6 md:p-8 border border-santara-border shadow-sm space-y-4">
+                        <div class="flex items-center space-x-3 border-b pb-3.5">
+                            <div class="w-9 h-9 rounded-xl bg-teal-50 text-santara-teal flex items-center justify-center font-black text-sm">4</div>
+                            <h3 class="font-extrabold text-santara-navy text-sm uppercase tracking-wider">4. Dokumentasi Home Visit & Kunjungan Rumah (Detail)</h3>
+                        </div>
+                        <div class="space-y-3 text-xs">
+                            ${hvs.length > 0 ? hvs.map(h => `
+                                <div class="p-4 bg-teal-50/50 rounded-2xl border border-teal-200 space-y-2">
+                                    <div class="flex justify-between font-bold text-santara-navy"><span>Tujuan: ${h.reason}</span><span class="text-gray-400">${h.date}</span></div>
+                                    <p class="text-gray-700 font-medium">Petugas: <strong>${h.officer}</strong></p>
+                                    <p class="text-gray-700 font-medium">Hasil Kunjungan: ${h.result}</p>
+                                    ${h.evidenceUrl ? `<div class="mt-2"><span class="font-bold text-teal-800"><i class="fa-solid fa-image mr-1"></i>Bukti Foto Kunjungan:</span><br><img src="${h.evidenceUrl}" class="w-48 h-32 object-cover rounded-xl border mt-2 shadow"></div>` : ''}
+                                </div>
+                            `).join('') : '<p class="text-gray-400 text-xs py-2 font-medium">Belum ada riwayat kunjungan home visit.</p>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openEditBiodataModal(studentId) {
+            const s = mockState.students.find(x => x.id === studentId);
+            const modal = document.getElementById('modalContainer');
+            const box = document.getElementById('modalContentBox');
+            box.innerHTML = `
+                <div class="bg-santara-navy text-white p-4 flex items-center justify-between">
+                    <h3 class="font-bold text-sm">Edit Biodata Diri & Unggah Foto Lokal (${s.name})</h3>
+                    <button onclick="closeModal()" class="text-white hover:text-gray-300"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+                <div class="p-6 space-y-4 text-xs">
+                    <div>
+                        <label class="block font-bold mb-1">UNGGAH FOTO PROFIL LOKAL DARI PERANGKAT</label>
+                        <input type="file" id="localAvatarFile" accept="image/*" class="w-full p-2.5 border rounded-xl font-medium bg-gray-50">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-bold mb-1">NAMA LENGKAP</label>
+                            <input type="text" id="editName" value="${s.name}" class="w-full p-3 border rounded-xl">
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1">NIS / NISN</label>
+                            <input type="text" id="editNis" value="${s.nis}" class="w-full p-3 border rounded-xl">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">NOMOR TELEPON SISWA</label>
+                        <input type="text" id="editPhone" value="${s.phone}" class="w-full p-3 border rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">NAMA ORANG TUA / WALI</label>
+                        <input type="text" id="editParent" value="${s.parent}" class="w-full p-3 border rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">NOMOR WHATSAPP ORANG TUA</label>
+                        <input type="text" id="editParentPhone" value="${s.parentPhone || ''}" class="w-full p-3 border rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1">ALAMAT TEMPAT TINGGAL</label>
+                        <input type="text" id="editAddress" value="${s.address || ''}" class="w-full p-3 border rounded-xl">
+                    </div>
+                    <button onclick="saveStudentBiodata(${s.id})" class="w-full py-3.5 bg-santara-teal text-white font-bold rounded-xl shadow-md">Simpan Perubahan Data</button>
+                </div>
+            `;
+            modal.classList.add('flex');
+            modal.classList.remove('hidden');
+        }
+
+        function saveStudentBiodata(studentId) {
+            const fileInput = document.getElementById('localAvatarFile');
+            const nameEl = document.getElementById('editName'), nisEl = document.getElementById('editNis');
+            const upd = { phone: document.getElementById('editPhone').value, parent: document.getElementById('editParent').value, parent_phone: document.getElementById('editParentPhone').value, address: document.getElementById('editAddress').value };
+            if (nameEl && nameEl.value.trim()) upd.name = nameEl.value.trim();
+            if (nisEl && nisEl.value.trim()) upd.nis = nisEl.value.trim();
+            const save = (avatar) => {
+                if (avatar) upd.avatar = avatar;
+                run(async () => { const { error } = await sb.from('students').update(upd).eq('id', studentId); if (error) throw error; closeModal(); },
+                    ['Berhasil', 'Biodata berhasil diperbarui.']).then(() => renderStudentProfileView(studentId));
+            };
+            if (fileInput && fileInput.files && fileInput.files[0]) compressImage(fileInput.files[0], 320, save); else save(null);
+        }
+
+        function renderPermissionsView(container) {
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="bg-white rounded-3xl p-6 md:p-8 border border-santara-border shadow-sm flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-santara-navy">Inbox Verifikasi Izin & Sakit Siswa</h3>
+                            <p class="text-xs text-santara-textSec mt-0.5">Siswa mengirimkan bukti surat/pesan langsung via WhatsApp Wali Kelas.</p>
+                        </div>
+                        <span class="px-3.5 py-1.5 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">${mockState.permissions.length} Pengajuan</span>
+                    </div>
+
+                    <div class="bg-white rounded-3xl border border-santara-border shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto w-full">
+                            <table class="w-full text-left text-xs min-w-[750px]">
+                                <thead class="bg-gray-50 text-santara-textSec uppercase font-semibold border-b border-santara-border">
+                                    <tr>
+                                        <th class="p-3.5">NISN & Nama</th>
+                                        <th class="p-3.5">Kategori</th>
+                                        <th class="p-3.5">Tanggal</th>
+                                        <th class="p-3.5">Alasan Keterangan</th>
+                                        <th class="p-3.5">Bukti (WhatsApp Ortu)</th>
+                                        <th class="p-3.5">Status</th>
+                                        <th class="p-3.5 text-right">Aksi Verifikasi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    ${mockState.permissions.map(p => `
+                                        <tr class="hover:bg-gray-50 transition">
+                                            <td class="p-3.5 font-bold text-santara-navy">${p.studentName}<br><span class="font-mono text-[10px] text-gray-500 font-medium">${p.nis}</span></td>
+                                            <td class="p-3.5"><span class="px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg font-bold">${p.category}</span></td>
+                                            <td class="p-3.5 text-gray-600 font-medium">${p.date}</td>
+                                            <td class="p-3.5 text-gray-700 font-medium">${p.reason}</td>
+                                            <td class="p-3.5">
+                                                <a href="https://wa.me/${mockState.schoolConfig.teacherPhone}?text=Halo%20Wali%20Kelas,%20ini%20bukti%20izin%20${p.studentName}" target="_blank" class="px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-xl font-bold hover:bg-green-100 transition inline-flex items-center space-x-1.5">
+                                                    <i class="fa-brands fa-whatsapp text-sm"></i>
+                                                    <span>Cek WhatsApp Ortu</span>
+                                                </a>
+                                            </td>
+                                            <td class="p-3.5"><span class="px-2.5 py-1 rounded-lg text-[10px] font-bold ${p.status === 'APPROVED' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${p.status}</span></td>
+                                            <td class="p-3.5 text-right space-x-1 whitespace-nowrap">
+                                                <button onclick="approvePermission(${p.id})" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-xl text-[11px] font-bold shadow-xs">Setujui</button>
+                                                <button onclick="rejectPermission(${p.id})" class="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-[11px] font-bold shadow-xs">Tolak</button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function approvePermission(permId) {
+            const p = mockState.permissions.find(x => x.id === permId);
+            if(!p) return;
+            const status = p.category.toUpperCase() === 'SAKIT' ? 'SAKIT' : 'IZIN';
+            run(async () => {
+                let r = await sb.from('permissions').update({ status: 'APPROVED' }).eq('id', permId); if (r.error) throw r.error;
+                r = await sb.from('attendance').upsert({ student_id: p.studentId, att_date: p.rawDate, status, scan_time: '-', source: 'izin' }, { onConflict: 'student_id,att_date' }); if (r.error) throw r.error;
+            }, ['Disetujui', `Izin ${p.studentName} disetujui & status absensi diperbarui.`], 'permissions');
+        }
+
+        function rejectPermission(permId) {
+            const p = mockState.permissions.find(x => x.id === permId);
+            if(!p) return;
+            run(async () => { const { error } = await sb.from('permissions').update({ status: 'REJECTED' }).eq('id', permId); if (error) throw error; },
+                ['Ditolak', `Pengajuan izin ${p.studentName} ditolak.`], 'permissions');
+        }
+
+        function renderStudentPermissionForm(container) {
+            container.innerHTML = `
+                <div class="space-y-6 max-w-lg mx-auto">
+                    <div class="bg-white rounded-3xl p-6 md:p-8 border border-santara-border shadow-sm space-y-4">
+                        <div class="flex items-center space-x-3 border-b pb-3">
+                            <div class="w-10 h-10 bg-teal-50 text-santara-teal rounded-xl flex items-center justify-center font-bold">
+                                <i class="fa-solid fa-file-pen"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-santara-navy text-sm">Form Pengajuan Surat Izin / Sakit Mandiri</h3>
+                                <p class="text-[11px] text-gray-500">Kirim pengajuan dan lampirkan bukti langsung ke WhatsApp Wali Kelas (${mockState.schoolConfig.teacherName}).</p>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-4 text-xs">
+                            <div>
+                                <label class="block font-bold mb-1.5 uppercase text-gray-600">KATEGORI PENGAJUAN</label>
+                                <select id="myPermCat" class="w-full p-3.5 border border-santara-border rounded-2xl font-medium bg-gray-50 focus:bg-white focus:ring-2 focus:ring-santara-teal focus:outline-none">
+                                    <option value="Sakit">Sakit</option>
+                                    <option value="Izin">Izin Keperluan Keluarga</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold mb-1.5 uppercase text-gray-600">TANGGAL IZIN</label>
+                                <input type="date" id="myPermDate" class="w-full p-3.5 border border-santara-border rounded-2xl font-medium bg-gray-50 focus:bg-white focus:ring-2 focus:ring-santara-teal focus:outline-none" value="2026-10-14">
+                            </div>
+                            <div>
+                                <label class="block font-bold mb-1.5 uppercase text-gray-600">ALASAN / KETERANGAN</label>
+                                <textarea id="myPermReason" class="w-full p-3.5 border border-santara-border rounded-2xl font-medium bg-gray-50 focus:bg-white focus:ring-2 focus:ring-santara-teal focus:outline-none" rows="3" placeholder="Sebutkan alasan izin secara jelas..."></textarea>
+                            </div>
+                            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 text-xs text-amber-900 flex items-start space-x-2.5">
+                                <i class="fa-brands fa-whatsapp text-green-600 text-lg mt-0.5 shrink-0"></i>
+                                <div>
+                                    <span class="font-bold">Ketentuan Lampiran Bukti:</span> Sesuai instruksi, setelah klik kirim, Anda akan diarahkan ke WhatsApp Wali Kelas (${mockState.schoolConfig.teacherName}) untuk mengirimkan foto surat dokter / bukti izin secara langsung.
+                                </div>
+                            </div>
+                            <button onclick="submitMyPermissionWhatsApp()" class="w-full py-4 bg-santara-teal hover:bg-teal-800 text-white font-bold rounded-2xl shadow-lg transition flex items-center justify-center space-x-2 text-xs uppercase tracking-wider">
+                                <i class="fa-brands fa-whatsapp text-base"></i>
+                                <span>Kirim Pengajuan & Kirim Bukti ke WA Wali Kelas</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function submitMyPermissionWhatsApp() {
+            const category = document.getElementById('myPermCat').value;
+            const date = document.getElementById('myPermDate').value;
+            const reason = document.getElementById('myPermReason').value;
+
+            if(!reason) {
+                showToast('Peringatan', 'Alasan wajib diisi.');
+                return;
+            }
+
+            mockState.permissions.unshift({
+                id: Date.now(),
+                studentName: mockState.currentUser.name,
+                nis: mockState.currentUser.nis,
+                category,
+                date: date || '14 Okt 2026',
+                reason,
+                status: 'PENDING',
+                evidenceType: 'whatsapp',
+                evidenceUrl: `https://wa.me/${mockState.schoolConfig.teacherPhone}`
+            });
+
+            const message = `Assalamualaikum ${mockState.schoolConfig.teacherName}.\n\nSaya siswa atas nama *${mockState.currentUser.name}* (NISN: ${mockState.currentUser.nis}), kelas ${mockState.schoolConfig.className} mengajukan izin *${category}* pada tanggal ${date || 'hari ini'} dengan alasan:\n"${reason}"\n\n*(Berikut saya lampirkan foto surat dokter/bukti izin)*`;
+            const waUrl = `https://wa.me/${mockState.schoolConfig.teacherPhone}?text=${encodeURIComponent(message)}`;
+
+            showToast('Berhasil Dikirim', 'Pengajuan tercatat di sistem. Membuka WhatsApp Wali Kelas...');
+            
+            setTimeout(() => {
+                window.open(waUrl, '_blank');
+                renderView('dashboard');
+            }, 1000);
+        }
+
+        function renderScanQRView(container) {
+            container.innerHTML = `
+                <div class="space-y-6 max-w-xl mx-auto">
+                    <div class="bg-gradient-to-br from-slate-900 via-santara-navy to-slate-900 rounded-3xl p-6 md:p-8 text-white shadow-2xl border border-teal-500/35 relative overflow-hidden">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <span class="px-3 py-1 bg-teal-500/20 border text-teal-300 rounded-full text-[10px] font-mono uppercase">HUD_SCANNER_V2.6</span>
+                                <h3 class="text-xl font-black mt-2">PEMINDAI QR ABSENSI</h3>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="stopCameraAndBack()" class="px-3 py-1.5 bg-red-600/80 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition flex items-center space-x-1">
+                                    <i class="fa-solid fa-power-off"></i><span>Tutup Kamera</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="reader" class="w-full bg-black/90 rounded-2xl overflow-hidden border-2 border-teal-500/60 shadow-lg min-h-[260px] flex items-center justify-center"></div>
+
+                        <div class="mt-6 space-y-3">
+                            <button onclick="manualScanPrompt()" class="w-full py-4 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 text-white font-bold rounded-2xl text-xs uppercase tracking-wider shadow-xl transition flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-bolt text-yellow-300 text-sm"></i>
+                                <span>INPUT NISN MANUAL</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            setTimeout(() => {
+                try {
+                    activeHtml5QrCode = new Html5Qrcode("reader");
+                    activeHtml5QrCode.start(
+                        { facingMode: "environment" },
+                        { fps: 10, qrbox: { width: 220, height: 220 } },
+                        (decodedText) => { recordScan(decodedText); },
+                        (errorMessage) => {}
+                    ).catch(err => {
+                        console.warn("Camera start warning:", err);
+                    });
+                } catch(e) { console.warn(e); }
+            }, 300);
+        }
+
+        function stopCameraAndBack() {
+            if (activeHtml5QrCode) {
+                try {
+                    activeHtml5QrCode.stop().then(() => {
+                        activeHtml5QrCode.clear();
+                        activeHtml5QrCode = null;
+                        renderView('dashboard');
+                    }).catch(err => {
+                        activeHtml5QrCode = null;
+                        renderView('dashboard');
+                    });
+                } catch(e) {
+                    activeHtml5QrCode = null;
+                    renderView('dashboard');
+                }
+            } else {
+                renderView('dashboard');
+            }
+        }
+
+        async function recordScan(text) {
+            const nis = String(text).replace(/^SANTARA[-:]?(NIS[-:]?)?/i, '').trim();
+            if (!nis || !kaderToken || needSb()) return;
+            const now = Date.now();
+            if (lastScan.nis === nis && now - lastScan.at < 4000) return;   // cegah scan ganda beruntun
+            lastScan = { nis, at: now };
+            try {
+                const { data, error } = await sb.rpc('kader_scan', { p_token: kaderToken, p_nis: nis });
+                if (error) throw error;
+                showToast('Absensi Berhasil', `${data.name} • ${data.status} pukul ${data.time}`);
+            } catch (e) { showToast('Gagal', errMsg(e)); }
+        }
+        function manualScanPrompt() {
+            const nis = prompt('Masukkan NISN siswa:');
+            if (nis) recordScan(nis);
+        }
+
+        function renderOfficerQRView(container) {
+            container.innerHTML = `
+                <div class="space-y-6 max-w-2xl mx-auto text-center">
+                    <div class="bg-gradient-to-r from-santara-navy to-santara-teal rounded-3xl p-6 md:p-8 text-white shadow-xl">
+                        <span class="bg-yellow-400 text-santara-navy px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider">Kader Petugas Pos: Gerbang Utama</span>
+                        <h2 class="text-2xl font-black mt-2">Panel Relai QR Absensi Resmi</h2>
+                        <p class="text-xs text-blue-100 mt-1">Tunjukkan QR dinamis ini kepada siswa yang datang.</p>
+                    </div>
+
+                    <div class="bg-white rounded-3xl p-8 border border-santara-border shadow-md flex flex-col items-center">
+                        <div class="bg-white p-4 rounded-2xl border-4 border-santara-navy shadow-inner inline-block mb-4">
+                            <canvas id="officerQrCanvas" class="w-60 h-60"></canvas>
+                        </div>
+                        <p class="text-xs text-gray-500 font-mono font-bold">Token Aktif Berotasi</p>
+                    </div>
+                </div>
+            `;
+            setTimeout(() => {
+                const canvas = document.getElementById('officerQrCanvas');
+                if(canvas) {
+                    try {
+                        new QRious({ element: canvas, value: 'SANTARA-OFFICER-RELAY-' + Date.now(), size: 240 });
+                    } catch(e) { console.warn(e); }
+                }
+            }, 100);
+        }
+
+        function renderCariCetakIndivView(container) {
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="bg-white rounded-3xl p-6 md:p-8 border border-santara-border shadow-sm no-print">
+                        <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                            <div>
+                                <h3 class="text-lg font-bold text-santara-navy">Pencarian Cepat & Cetak Dossier Individu Siswa (360°)</h3>
+                                <p class="text-xs text-santara-textSec mt-1">Pilih atau cari siswa untuk memuat laporan komprehensif resmi siap cetak (A4).</p>
+                            </div>
+                            <div class="flex items-center space-x-2 w-full md:w-auto">
+                                <button onclick="window.print()" class="w-full md:w-auto px-6 py-3.5 bg-santara-navy hover:bg-blue-900 text-white rounded-2xl text-xs font-bold shadow-md transition flex items-center justify-center space-x-2">
+                                    <i class="fa-solid fa-print"></i><span>Cetak Dokumen A4</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="mt-5 grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div class="md:col-span-2">
+                                <select id="searchIndivSelect" onchange="previewIndividualReport()" class="w-full p-3.5 border border-santara-border rounded-2xl text-xs font-semibold bg-gray-50 focus:bg-white focus:ring-2 focus:ring-santara-teal focus:outline-none">
+                                    <option value="">-- Pilih Siswa Kelas ${mockState.schoolConfig.className} (${mockState.students.length} Siswa) --</option>
+                                    ${mockState.students.map(s => `<option value="${s.id}">${s.name} — NISN: ${s.nis}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div>
+                                <input type="text" id="indivQuickSearchInput" oninput="filterIndivDropdown(this.value)" placeholder="Filter cepat nama..." class="w-full p-3.5 border border-santara-border rounded-2xl text-xs font-medium bg-gray-50 focus:bg-white focus:ring-2 focus:ring-santara-teal focus:outline-none">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="individualReportPreviewBox" class="bg-white rounded-3xl p-8 md:p-12 border border-santara-border shadow-xl print-container space-y-6">
+                        <div class="text-center py-20 text-gray-400">
+                            <div class="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl text-santara-teal border">
+                                <i class="fa-solid fa-id-card-clip"></i>
+                            </div>
+                            <p class="text-xs font-bold text-santara-navy uppercase tracking-wider">Silakan pilih siswa pada menu di atas</p>
+                            <p class="text-[11px] text-gray-500 mt-1">Laporan dossier profil 360° lengkap dengan rekam jejak akademik, pelanggaran, konseling, dan home visit akan ditampilkan di sini.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function filterIndivDropdown(keyword) {
+            const q = keyword.toLowerCase();
+            const select = document.getElementById('searchIndivSelect');
+            if(!select) return;
+            const matched = mockState.students.filter(s => s.name.toLowerCase().includes(q) || s.nis.includes(q));
+            select.innerHTML = `<option value="">-- Hasil Filter (${matched.length} Siswa) --</option>` + 
+                matched.map(s => `<option value="${s.id}">${s.name} — NISN: ${s.nis}</option>`).join('');
+        }
+
+        function previewIndividualReport() {
+            const studentId = parseInt(document.getElementById('searchIndivSelect').value);
+            const box = document.getElementById('individualReportPreviewBox');
+            if(!studentId) return;
+
+            const s = mockState.students.find(x => x.id === studentId);
+            const viols = mockState.violations.filter(v => v.nis === s.nis);
+            const hvs = mockState.homeVisits.filter(h => h.nis === s.nis);
+            const cs = mockState.counseling.filter(c => c.nis === s.nis);
+            const currentPoints = getStudentPoints(s);
+
+            box.innerHTML = `
+                <!-- Kop Surat Resmi A4 -->
+                <div class="flex items-center justify-between border-b-4 border-santara-navy pb-5">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-16 h-16 bg-santara-navy text-white rounded-2xl flex items-center justify-center font-black text-2xl shadow">
+                            NU
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-black text-santara-navy uppercase tracking-wider">${mockState.schoolConfig.schoolName}</h2>
+                            <p class="text-xs font-bold text-teal-700">KOMPETENSI KEAHLIAN: ${mockState.schoolConfig.department}</p>
+                            <p class="text-[10px] text-gray-500">${mockState.schoolConfig.address}</p>
+                        </div>
+                    </div>
+                    <div class="text-right hidden sm:block">
+                        <span class="px-3 py-1 bg-gray-100 border rounded-xl text-[10px] font-mono font-bold text-gray-700">DOKUMEN RESMI WALI KELAS</span>
+                        <p class="text-[10px] text-gray-500 mt-1">Tahun Ajaran ${mockState.schoolConfig.academicYear}</p>
+                    </div>
+                </div>
+
+                <div class="text-center py-2">
+                    <h3 class="text-base font-extrabold text-santara-navy uppercase tracking-tight">LEMBAR DOSSIER KOMPREHENSIF KESISWAAN (PROFIL 360°)</h3>
+                    <p class="text-xs text-gray-600 font-medium">Nomor Induk Siswa Nasional (NISN): <span class="font-mono font-bold text-santara-navy">${s.nis}</span></p>
+                </div>
+
+                <!-- Identitas Siswa & Foto -->
+                <div class="bg-gray-50 p-5 rounded-2xl border border-santara-border flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div class="flex items-center space-x-4">
+                        <img src="${s.avatar}" class="w-16 h-16 rounded-2xl object-cover border-2 border-santara-teal shadow-sm">
+                        <div>
+                            <h4 class="font-extrabold text-sm text-santara-navy">${s.name}</h4>
+                            <p class="text-xs text-gray-600">Kelas: <strong>${mockState.schoolConfig.className}</strong> • Jenis Kelamin: <strong>${s.gender === 'L' ? 'Laki-laki' : 'Perempuan'}</strong></p>
+                            <p class="text-xs text-gray-600 mt-0.5">Alamat: ${s.address || 'Kendal'} • No. Telp: <span class="font-mono">${s.phone || '-'}</span></p>
+                        </div>
+                    </div>
+                    <div class="text-right bg-white p-3.5 rounded-xl border shadow-2xs w-full md:w-auto">
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Poin Karakter Tata Tertib</span>
+                        <span class="text-lg font-black ${currentPoints < 75 ? 'text-red-600' : 'text-green-700'}">${currentPoints} / 100</span>
+                    </div>
+                </div>
+
+                <!-- Data Orang Tua & Kontak -->
+                <div>
+                    <h5 class="font-bold text-xs text-santara-navy uppercase tracking-wider bg-santara-navy/5 px-3.5 py-2 rounded-xl mb-2.5">I. Identitas Orang Tua / Wali Siswa</h5>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs px-2">
+                        <div class="p-3 bg-gray-50/70 rounded-xl border">
+                            <span class="text-gray-400 block text-[10px] uppercase font-bold">Nama Orang Tua / Wali</span>
+                            <span class="font-bold text-santara-navy text-sm">${s.parent || '-'}</span>
+                        </div>
+                        <div class="p-3 bg-gray-50/70 rounded-xl border flex items-center justify-between">
+                            <div>
+                                <span class="text-gray-400 block text-[10px] uppercase font-bold">Nomor WhatsApp Ortu</span>
+                                <span class="font-bold font-mono text-green-700">${s.parentPhone || '-'}</span>
+                            </div>
+                            <a href="https://wa.me/${s.parentPhone}" target="_blank" class="no-print px-2.5 py-1 bg-green-50 text-green-700 border border-green-200 rounded-lg font-bold text-[10px]"><i class="fa-brands fa-whatsapp"></i> WA</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rekapitulasi Kehadiran -->
+                <div>
+                    <h5 class="font-bold text-xs text-santara-navy uppercase tracking-wider bg-santara-navy/5 px-3.5 py-2 rounded-xl mb-2.5">II. Rekapitulasi Kehadiran Semester Ini</h5>
+                    <div class="grid grid-cols-5 gap-2 text-center text-xs px-2">
+                        <div class="p-2.5 bg-green-50 rounded-xl border border-green-200">
+                            <span class="block text-[10px] text-green-800 font-bold">HADIR</span>
+                            <span class="text-base font-black text-green-700">${s.attendanceSummary ? s.attendanceSummary.hadir : 22}</span>
+                        </div>
+                        <div class="p-2.5 bg-yellow-50 rounded-xl border border-yellow-200">
+                            <span class="block text-[10px] text-yellow-800 font-bold">TERLAMBAT</span>
+                            <span class="text-base font-black text-yellow-700">${s.attendanceSummary ? s.attendanceSummary.terlambat : 0}</span>
+                        </div>
+                        <div class="p-2.5 bg-blue-50 rounded-xl border border-blue-200">
+                            <span class="block text-[10px] text-blue-800 font-bold">SAKIT</span>
+                            <span class="text-base font-black text-blue-700">${s.attendanceSummary ? s.attendanceSummary.sakit : 0}</span>
+                        </div>
+                        <div class="p-2.5 bg-purple-50 rounded-xl border border-purple-200">
+                            <span class="block text-[10px] text-purple-800 font-bold">IZIN</span>
+                            <span class="text-base font-black text-purple-700">${s.attendanceSummary ? s.attendanceSummary.izin : 0}</span>
+                        </div>
+                        <div class="p-2.5 bg-red-50 rounded-xl border border-red-200">
+                            <span class="block text-[10px] text-red-800 font-bold">ALFA</span>
+                            <span class="text-base font-black text-red-700">${s.attendanceSummary ? s.attendanceSummary.alfa : 0}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Riwayat Pelanggaran -->
+                <div>
+                    <h5 class="font-bold text-xs text-santara-navy uppercase tracking-wider bg-santara-navy/5 px-3.5 py-2 rounded-xl mb-2.5">III. Rekam Jejak Pelanggaran & Poin Karakter</h5>
+                    <div class="px-2">
+                        ${viols.length === 0 ? '<p class="text-xs text-gray-500 italic py-2">Siswa memiliki catatan tata tertib yang bersih (Tidak ada pelanggaran tercatat).</p>' : `
+                            <table class="w-full text-left text-xs border border-gray-200 rounded-xl overflow-hidden">
+                                <thead class="bg-gray-100 text-gray-700 uppercase font-bold">
+                                    <tr>
+                                        <th class="p-2.5 border-b">Tanggal</th>
+                                        <th class="p-2.5 border-b">Bentuk Pelanggaran</th>
+                                        <th class="p-2.5 border-b">Kategori</th>
+                                        <th class="p-2.5 border-b">Poin</th>
+                                        <th class="p-2.5 border-b">Tindakan Pembinaan</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    ${viols.map(v => `
+                                        <tr>
+                                            <td class="p-2.5 font-mono text-gray-600">${v.date}</td>
+                                            <td class="p-2.5 font-bold text-santara-navy">${v.violation}</td>
+                                            <td class="p-2.5"><span class="px-2 py-0.5 bg-red-100 text-red-700 rounded font-bold">${v.category}</span></td>
+                                            <td class="p-2.5 font-mono font-bold text-red-600">${v.points}</td>
+                                            <td class="p-2.5 text-gray-700">${v.action}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        `}
+                    </div>
+                </div>
+
+                <!-- Catatan Konseling BK -->
+                <div>
+                    <h5 class="font-bold text-xs text-santara-navy uppercase tracking-wider bg-santara-navy/5 px-3.5 py-2 rounded-xl mb-2.5">IV. Catatan Pembinaan & Konseling BK</h5>
+                    <div class="px-2 space-y-2">
+                        ${cs.length === 0 ? '<p class="text-xs text-gray-500 italic py-2">Belum ada catatan konseling khusus.</p>' : cs.map(c => `
+                            <div class="p-3 bg-gray-50 rounded-xl border text-xs space-y-1">
+                                <div class="flex justify-between font-bold text-santara-navy"><span>${c.category}</span><span class="text-gray-400 font-mono">${c.date}</span></div>
+                                <p class="text-gray-700 font-medium">Uraian: ${c.description}</p>
+                                <p class="text-teal-700 font-semibold">Tindakan: ${c.action}</p>
+                                <p class="text-green-700 font-semibold">Hasil: ${c.result}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- Home Visit -->
+                <div>
+                    <h5 class="font-bold text-xs text-santara-navy uppercase tracking-wider bg-santara-navy/5 px-3.5 py-2 rounded-xl mb-2.5">V. Dokumentasi Kunjungan Rumah (Home Visit)</h5>
+                    <div class="px-2 space-y-2">
+                        ${hvs.length === 0 ? '<p class="text-xs text-gray-500 italic py-2">Tidak ada riwayat home visit.</p>' : hvs.map(h => `
+                            <div class="p-3 bg-gray-50 rounded-xl border text-xs space-y-1">
+                                <div class="flex justify-between font-bold text-santara-navy"><span>Tujuan: ${h.reason}</span><span class="text-gray-400 font-mono">${h.date}</span></div>
+                                <p class="text-gray-700 font-medium">Petugas: ${h.officer} • Hasil: ${h.result}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- Tanda Tangan Resmi A4 -->
+                <div class="pt-8 mt-6 border-t grid grid-cols-3 text-center text-xs font-medium page-break">
+                    <div>
+                        <p class="mb-16">Mengetahui,<br>Orang Tua / Wali Siswa</p>
+                        <p class="font-bold underline uppercase">( ${s.parent || '............................'} )</p>
+                    </div>
+                    <div>
+                        <p class="mb-16">Siswa Yang Bersangkutan,</p>
+                        <p class="font-bold underline uppercase">( ${s.name} )</p>
+                    </div>
+                    <div>
+                        <p class="mb-16">Kendal, ${new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}<br>Wali Kelas ${mockState.schoolConfig.className}</p>
+                        <p class="font-bold underline uppercase">${mockState.schoolConfig.teacherName}</p>
+                        <p class="text-[10px] text-gray-500 font-mono">NIP. ${mockState.schoolConfig.teacherNip}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function setReportTab(tab) {
+            currentReportTab = tab;
+            const area = document.getElementById('mainContentArea');
+            renderReportsView(area);
+        }
+
+        function renderReportsView(container) {
+            const semester = document.getElementById('reportSemester')?.value || 'Genap';
+            const tp = document.getElementById('reportTp')?.value || mockState.schoolConfig.academicYear;
+            const startDate = document.getElementById('reportStartDate')?.value || '2026-07-01';
+            const endDate = document.getElementById('reportEndDate')?.value || '2026-10-14';
+
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="bg-white rounded-3xl p-6 md:p-8 border border-santara-border shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 no-print">
+                        <div>
+                            <h3 class="text-lg font-bold text-santara-navy">Pusat Laporan A4 Kedinasan & Dokumen Resmi</h3>
+                            <p class="text-xs text-santara-textSec mt-0.5">Kelola dan cetak rekapitulasi resmi ${mockState.schoolConfig.schoolName} Kelas ${mockState.schoolConfig.className}.</p>
+                        </div>
+                        <div class="flex items-center space-x-2 w-full md:w-auto">
+                            <button onclick="window.print()" class="w-full md:w-auto px-5 py-3 bg-santara-navy hover:bg-blue-900 text-white rounded-2xl text-xs font-bold transition shadow-md flex items-center justify-center space-x-2">
+                                <i class="fa-solid fa-print"></i><span>Cetak Laporan A4</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filter Bar & Tabs -->
+                    <div class="bg-white rounded-3xl p-6 border border-santara-border shadow-sm space-y-4 no-print">
+                        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+                            <div>
+                                <label class="block font-bold text-gray-600 mb-1 uppercase">SEMESTER</label>
+                                <select id="reportSemester" class="w-full p-3 bg-gray-50 border rounded-xl font-semibold">
+                                    <option value="Genap" ${semester==='Genap'?'selected':''}>Semester Genap</option>
+                                    <option value="Ganjil" ${semester==='Ganjil'?'selected':''}>Semester Ganjil</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-gray-600 mb-1 uppercase">TAHUN PELAJARAN</label>
+                                <select id="reportTp" class="w-full p-3 bg-gray-50 border rounded-xl font-semibold">
+                                    <option value="${mockState.schoolConfig.academicYear}">${mockState.schoolConfig.academicYear}</option>
+                                    <option value="2025/2026">2025/2026</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-gray-600 mb-1 uppercase">TANGGAL MULAI</label>
+                                <input type="date" id="reportStartDate" value="${startDate}" class="w-full p-3 bg-gray-50 border rounded-xl font-semibold">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-gray-600 mb-1 uppercase">TANGGAL SELESAI</label>
+                                <input type="date" id="reportEndDate" value="${endDate}" class="w-full p-3 bg-gray-50 border rounded-xl font-semibold">
+                            </div>
+                        </div>
+
+                        <!-- Report Tabs -->
+                        <div class="flex border-b pt-2 space-x-6 overflow-x-auto">
+                            <button onclick="setReportTab('kehadiran')" class="pb-3 text-xs font-extrabold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${currentReportTab==='kehadiran' ? 'border-santara-teal text-santara-teal' : 'border-transparent text-gray-400 hover:text-gray-600'}">
+                                <i class="fa-solid fa-user-check mr-1.5"></i> 1. Rekap Kehadiran Semua Siswa
+                            </button>
+                            <button onclick="setReportTab('kedisiplinan')" class="pb-3 text-xs font-extrabold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${currentReportTab==='kedisiplinan' ? 'border-santara-teal text-santara-teal' : 'border-transparent text-gray-400 hover:text-gray-600'}">
+                                <i class="fa-solid fa-triangle-exclamation mr-1.5"></i> 2. Rekap Kedisiplinan & BK
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Report Paper A4 Content -->
+                    <div class="bg-white rounded-3xl p-8 md:p-12 border border-santara-border shadow-xl print-container space-y-6">
+                        <!-- Kop Surat Resmi -->
+                        <div class="flex items-center justify-between border-b-4 border-santara-navy pb-5">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-16 h-16 bg-santara-navy text-white rounded-2xl flex items-center justify-center font-black text-2xl shadow">
+                                    NU
+                                </div>
+                                <div>
+                                    <h2 class="text-xl font-black text-santara-navy uppercase tracking-wider">${mockState.schoolConfig.schoolName}</h2>
+                                    <p class="text-xs font-bold text-teal-700">KOMPETENSI KEAHLIAN: ${mockState.schoolConfig.department}</p>
+                                    <p class="text-[10px] text-gray-500">${mockState.schoolConfig.address}</p>
+                                </div>
+                            </div>
+                            <div class="text-right hidden sm:block font-mono text-[11px] text-gray-600">
+                                <p class="font-bold">PERIODE: ${startDate} s.d. ${endDate}</p>
+                                <p>TP ${tp} • Semester ${semester}</p>
+                            </div>
+                        </div>
+
+                        ${currentReportTab === 'kehadiran' ? renderAttendanceReportHtml() : renderDisciplinaryReportHtml()}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderAttendanceReportHtml() {
+            return `
+                <div class="text-center py-2">
+                    <h3 class="text-base font-extrabold text-santara-navy uppercase tracking-tight">LAPORAN REKAPITULASI KEHADIRAN KELAS ${mockState.schoolConfig.className}</h3>
+                    <p class="text-xs text-gray-600 font-medium">Wali Kelas: ${mockState.schoolConfig.teacherName} • Total Siswa: ${mockState.students.length} Siswa</p>
+                </div>
+
+                <div class="overflow-x-auto pt-2">
+                    <table class="w-full text-left text-xs border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-gray-100 font-bold text-gray-700">
+                                <th class="border border-gray-300 p-2.5 text-center w-12">No</th>
+                                <th class="border border-gray-300 p-2.5">NISN</th>
+                                <th class="border border-gray-300 p-2.5">Nama Siswa</th>
+                                <th class="border border-gray-300 p-2.5 text-center">Hadir</th>
+                                <th class="border border-gray-300 p-2.5 text-center">Terlambat</th>
+                                <th class="border border-gray-300 p-2.5 text-center">Sakit</th>
+                                <th class="border border-gray-300 p-2.5 text-center">Izin</th>
+                                <th class="border border-gray-300 p-2.5 text-center">Alfa</th>
+                                <th class="border border-gray-300 p-2.5 text-center">Persentase</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            ${mockState.students.map((s, idx) => {
+                                const sum = s.attendanceSummary || { hadir: 22, terlambat: 0, sakit: 0, izin: 0, alfa: 0 };
+                                const totalHadir = sum.hadir + sum.terlambat;
+                                const pct = Math.round((totalHadir / 24) * 100);
+                                return `
+                                    <tr>
+                                        <td class="border border-gray-300 p-2 text-center text-gray-500">${idx + 1}</td>
+                                        <td class="border border-gray-300 p-2 font-mono font-medium">${s.nis}</td>
+                                        <td class="border border-gray-300 p-2 font-bold text-santara-navy">${s.name}</td>
+                                        <td class="border border-gray-300 p-2 text-center text-green-700 font-bold">${sum.hadir}</td>
+                                        <td class="border border-gray-300 p-2 text-center text-yellow-700 font-bold">${sum.terlambat}</td>
+                                        <td class="border border-gray-300 p-2 text-center text-blue-700 font-bold">${sum.sakit}</td>
+                                        <td class="border border-gray-300 p-2 text-center text-purple-700 font-bold">${sum.izin}</td>
+                                        <td class="border border-gray-300 p-2 text-center text-red-700 font-bold">${sum.alfa}</td>
+                                        <td class="border border-gray-300 p-2 text-center font-bold text-santara-navy">${pct}%</td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Tanda Tangan -->
+                <div class="pt-10 mt-8 border-t grid grid-cols-2 text-center text-xs font-medium">
+                    <div>
+                        <p class="mb-16">Mengetahui,<br>Kepala ${mockState.schoolConfig.schoolName}</p>
+                        <p class="font-bold underline uppercase">${mockState.schoolConfig.principalName}</p>
+                        <p class="text-[10px] text-gray-500 font-mono">NIP. ${mockState.schoolConfig.principalNip}</p>
+                    </div>
+                    <div>
+                        <p class="mb-16">Kendal, ${new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}<br>Wali Kelas ${mockState.schoolConfig.className}</p>
+                        <p class="font-bold underline uppercase">${mockState.schoolConfig.teacherName}</p>
+                        <p class="text-[10px] text-gray-500 font-mono">NIP. ${mockState.schoolConfig.teacherNip}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderDisciplinaryReportHtml() {
+            return `
+                <div class="text-center py-2">
+                    <h3 class="text-base font-extrabold text-santara-navy uppercase tracking-tight">LAPORAN REKAPITULASI KEDISIPLINAN & BK KELAS ${mockState.schoolConfig.className}</h3>
+                    <p class="text-xs text-gray-600 font-medium">Wali Kelas: ${mockState.schoolConfig.teacherName} • Total Kasus Tercatat: ${mockState.violations.length + mockState.counseling.length}</p>
+                </div>
+
+                <div class="space-y-4 pt-2">
+                    <h4 class="font-bold text-xs text-santara-navy uppercase tracking-wider bg-santara-navy/5 px-3.5 py-2 rounded-xl">I. Rekapitulasi Pelanggaran & Poin Tata Tertib</h4>
+                    <table class="w-full text-left text-xs border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-gray-100 font-bold text-gray-700">
+                                <th class="border border-gray-300 p-2.5 text-center w-12">No</th>
+                                <th class="border border-gray-300 p-2.5">Tanggal</th>
+                                <th class="border border-gray-300 p-2.5">NISN & Nama Siswa</th>
+                                <th class="border border-gray-300 p-2.5">Bentuk Pelanggaran</th>
+                                <th class="border border-gray-300 p-2.5">Kategori</th>
+                                <th class="border border-gray-300 p-2.5 text-center">Poin</th>
+                                <th class="border border-gray-300 p-2.5">Tindakan / Sanksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            ${mockState.violations.length === 0 ? `<tr><td colspan="7" class="p-4 text-center text-gray-400">Tidak ada pelanggaran tercatat.</td></tr>` : mockState.violations.map((v, idx) => `
+                                <tr>
+                                    <td class="border border-gray-300 p-2 text-center text-gray-500">${idx + 1}</td>
+                                    <td class="border border-gray-300 p-2 font-mono">${v.date}</td>
+                                    <td class="border border-gray-300 p-2 font-bold text-santara-navy">${v.studentName} <span class="font-mono font-normal text-[10px]">(${v.nis})</span></td>
+                                    <td class="border border-gray-300 p-2 text-gray-800">${v.violation}</td>
+                                    <td class="border border-gray-300 p-2 font-semibold">${v.category}</td>
+                                    <td class="border border-gray-300 p-2 text-center font-mono font-bold text-red-600">${v.points}</td>
+                                    <td class="border border-gray-300 p-2 text-gray-700">${v.action}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <h4 class="font-bold text-xs text-santara-navy uppercase tracking-wider bg-santara-navy/5 px-3.5 py-2 rounded-xl mt-6">II. Ringkasan Sesi Pembinaan & Konseling BK</h4>
+                    <table class="w-full text-left text-xs border-collapse border border-gray-300">
+                        <thead>
+                            <tr class="bg-gray-100 font-bold text-gray-700">
+                                <th class="border border-gray-300 p-2.5 text-center w-12">No</th>
+                                <th class="border border-gray-300 p-2.5">Tanggal</th>
+                                <th class="border border-gray-300 p-2.5">Nama Siswa</th>
+                                <th class="border border-gray-300 p-2.5">Kategori Masalah</th>
+                                <th class="border border-gray-300 p-2.5">Langkah Penanganan & Hasil</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            ${mockState.counseling.length === 0 ? `<tr><td colspan="5" class="p-4 text-center text-gray-400">Tidak ada sesi konseling tercatat.</td></tr>` : mockState.counseling.map((c, idx) => `
+                                <tr>
+                                    <td class="border border-gray-300 p-2 text-center text-gray-500">${idx + 1}</td>
+                                    <td class="border border-gray-300 p-2 font-mono">${c.date}</td>
+                                    <td class="border border-gray-300 p-2 font-bold text-santara-navy">${c.studentName}</td>
+                                    <td class="border border-gray-300 p-2 font-semibold text-purple-700">${c.category}</td>
+                                    <td class="border border-gray-300 p-2 text-gray-700">Uraian: ${c.description}. Tindakan: ${c.action}. Hasil: ${c.result}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Tanda Tangan -->
+                <div class="pt-10 mt-8 border-t grid grid-cols-2 text-center text-xs font-medium">
+                    <div>
+                        <p class="mb-16">Mengetahui,<br>Kepala ${mockState.schoolConfig.schoolName}</p>
+                        <p class="font-bold underline uppercase">${mockState.schoolConfig.principalName}</p>
+                        <p class="text-[10px] text-gray-500 font-mono">NIP. ${mockState.schoolConfig.principalNip}</p>
+                    </div>
+                    <div>
+                        <p class="mb-16">Kendal, ${new Date().toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}<br>Wali Kelas ${mockState.schoolConfig.className}</p>
+                        <p class="font-bold underline uppercase">${mockState.schoolConfig.teacherName}</p>
+                        <p class="text-[10px] text-gray-500 font-mono">NIP. ${mockState.schoolConfig.teacherNip}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderSettingsView(container) {
+            const sc = mockState.schoolConfig;
+            container.innerHTML = `
+                <div class="space-y-6 max-w-2xl mx-auto pb-12">
+                    <div class="bg-white rounded-3xl p-6 md:p-8 border border-santara-border shadow-sm space-y-6">
+                        <div>
+                            <h3 class="text-lg font-bold text-santara-navy">Pengaturan Identitas Sekolah & Akun Wali Kelas</h3>
+                            <p class="text-xs text-santara-textSec mt-0.5">Perubahan ini akan terintegrasi ke seluruh sistem (Kop surat laporan A4, WhatsApp izin, profil, dan PIN login).</p>
+                        </div>
+
+                        <div class="space-y-4 text-xs">
+                            <div class="flex items-center space-x-4 bg-gray-50 p-4 rounded-2xl border">
+                                <img id="settingAvatarPreview" src="${sc.avatar}" class="w-16 h-16 rounded-2xl object-cover border-2 border-santara-teal shadow">
+                                <div>
+                                    <label class="block font-bold mb-1 uppercase text-gray-700">FOTO PROFIL WALI KELAS</label>
+                                    <input type="file" id="settingAvatarFile" accept="image/*" class="w-full text-xs font-medium">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block font-bold mb-1 uppercase text-gray-700">NAMA SEKOLAH</label>
+                                    <input type="text" id="setSchoolName" value="${sc.schoolName}" class="w-full p-3.5 border rounded-xl font-medium">
+                                </div>
+                                <div>
+                                    <label class="block font-bold mb-1 uppercase text-gray-700">KOMPETENSI KEAHLIAN / JURUSAN</label>
+                                    <input type="text" id="setDept" value="${sc.department}" class="w-full p-3.5 border rounded-xl font-medium">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block font-bold mb-1 uppercase text-gray-700">KELAS BINAAN</label>
+                                    <input type="text" id="setClassName" value="${sc.className}" class="w-full p-3.5 border rounded-xl font-medium">
+                                </div>
+                                <div>
+                                    <label class="block font-bold mb-1 uppercase text-gray-700">TAHUN PELAJARAN</label>
+                                    <input type="text" id="setAcademicYear" value="${sc.academicYear}" class="w-full p-3.5 border rounded-xl font-medium">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block font-bold mb-1 uppercase text-gray-700">NAMA KEPALA SEKOLAH</label>
+                                    <input type="text" id="setPrincipalName" value="${sc.principalName}" class="w-full p-3.5 border rounded-xl font-medium">
+                                </div>
+                                <div>
+                                    <label class="block font-bold mb-1 uppercase text-gray-700">NIP KEPALA SEKOLAH</label>
+                                    <input type="text" id="setPrincipalNip" value="${sc.principalNip}" class="w-full p-3.5 border rounded-xl font-medium">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block font-bold mb-1 uppercase text-gray-700">NAMA WALI KELAS & GELAR</label>
+                                    <input type="text" id="setTeacherName" value="${sc.teacherName}" class="w-full p-3.5 border rounded-xl font-medium">
+                                </div>
+                                <div>
+                                    <label class="block font-bold mb-1 uppercase text-gray-700">NIP WALI KELAS</label>
+                                    <input type="text" id="setTeacherNip" value="${sc.teacherNip}" class="w-full p-3.5 border rounded-xl font-medium">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block font-bold mb-1 uppercase text-gray-700">NOMOR WHATSAPP WALI KELAS (Format: 628...)</label>
+                                    <input type="text" id="setTeacherPhone" value="${sc.teacherPhone}" class="w-full p-3.5 border rounded-xl font-medium">
+                                </div>
+                                <div>
+                                    <label class="block font-bold mb-1 uppercase text-gray-700">PASSWORD LOGIN BARU (EMAIL LOGIN TIDAK BERUBAH)</label>
+                                    <input type="password" id="setTeacherPassword" value="" placeholder="Kosongkan jika tidak diganti (min. 6 karakter)" autocomplete="new-password" class="w-full p-3.5 border rounded-xl font-medium">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block font-bold mb-1 uppercase text-gray-700">ALAMAT SEKOLAH</label>
+                                <input type="text" id="setSchoolAddress" value="${sc.address}" class="w-full p-3.5 border rounded-xl font-medium">
+                            </div>
+
+                            <button onclick="saveSchoolSettings()" class="w-full py-4 bg-santara-teal hover:bg-teal-800 text-white font-bold rounded-2xl shadow-lg transition">Simpan & Sinkronkan Identitas Sekolah</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function saveSchoolSettings() {
+            const g = id => document.getElementById(id).value;
+            const upd = { school_name: g('setSchoolName'), department: g('setDept'), class_name: g('setClassName'), academic_year: g('setAcademicYear'), principal_name: g('setPrincipalName'), principal_nip: g('setPrincipalNip'), teacher_name: g('setTeacherName'), teacher_nip: g('setTeacherNip'), teacher_phone: g('setTeacherPhone'), address: g('setSchoolAddress') };
+            const newPw = g('setTeacherPassword');
+            if (newPw && newPw.length < 6) { showToast('Peringatan', 'Password baru minimal 6 karakter.'); return; }
+            const fileInput = document.getElementById('settingAvatarFile');
+            const save = (avatar) => {
+                if (avatar) upd.avatar = avatar;
+                run(async () => {
+                    let r = await sb.from('profiles').update(upd).eq('id', mockState.uid); if (r.error) throw r.error;
+                    if (newPw) { r = await sb.auth.updateUser({ password: newPw }); if (r.error) throw r.error; }
+                }, null, null).then(() => {
+                    const sc = mockState.schoolConfig, cu = mockState.currentUser;
+                    Object.assign(cu, { name: sc.teacherName, nip: sc.teacherNip, phone: sc.teacherPhone, role: `Wali Kelas ${sc.className}`, avatar: sc.avatar });
+                    ['sidebarUserName', 'topbarUserName', 'dropdownUserFullName'].forEach(id => { const el = document.getElementById(id); if (el) el.innerText = sc.teacherName; });
+                    document.getElementById('sidebarUserRole').innerText = cu.role;
+                    document.getElementById('sidebarUserAvatar').src = sc.avatar; document.getElementById('topbarUserAvatar').src = sc.avatar;
+                    showToast('Berhasil Disimpan', 'Identitas sekolah dan akun wali kelas berhasil disinkronkan.');
+                    renderView('settings');
+                });
+            };
+            if (fileInput && fileInput.files && fileInput.files[0]) compressImage(fileInput.files[0], 320, save); else save(null);
+        }
+
+        function renderViolationsView(container) {
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="bg-white rounded-3xl p-6 md:p-8 border border-santara-border shadow-sm flex items-center justify-between">
+                        <div>
+                            <h3 class="text-lg font-bold text-santara-navy">Pencatatan Pelanggaran & Poin Karakter</h3>
+                            <p class="text-xs text-santara-textSec mt-0.5">Basis 100 Poin Karakter • Setiap pelanggaran akan otomatis memotong poin siswa.</p>
+                        </div>
+                        <button onclick="openAddViolationModal()" class="px-5 py-3 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-xs font-bold transition shadow-md">
+                            <i class="fa-solid fa-plus mr-1"></i> Catat Pelanggaran Baru
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-3xl border border-santara-border shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-gray-50 text-santara-textSec uppercase font-semibold border-b border-santara-border">
+                                    <tr>
+                                        <th class="p-3.5">Tanggal</th>
+                                        <th class="p-3.5">Nama Siswa</th>
+                                        <th class="p-3.5">Jenis Pelanggaran</th>
+                                        <th class="p-3.5">Kategori</th>
+                                        <th class="p-3.5">Poin Pengurang</th>
+                                        <th class="p-3.5">Tindakan Pembinaan</th>
+                                        <th class="p-3.5 text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    ${mockState.violations.length === 0 ? `<tr><td colspan="7" class="p-6 text-center text-gray-400">Belum ada catatan pelanggaran.</td></tr>` : mockState.violations.map(v => `
+                                        <tr class="hover:bg-gray-50 transition">
+                                            <td class="p-3.5 text-gray-600 font-medium">${v.date}</td>
+                                            <td class="p-3.5 font-bold text-santara-navy">${v.studentName}<br><span class="font-mono text-[10px] text-gray-500">${v.nis}</span></td>
+                                            <td class="p-3.5 text-gray-800 font-medium">${v.violation}</td>
+                                            <td class="p-3.5"><span class="px-2.5 py-1 bg-red-50 text-red-700 rounded-lg font-bold">${v.category}</span></td>
+                                            <td class="p-3.5 font-mono font-bold text-red-600">${v.points} Poin</td>
+                                            <td class="p-3.5 text-gray-600 font-medium">${v.action}</td>
+                                            <td class="p-3.5 text-right">
+                                                <button onclick="deleteViolation(${v.id})" class="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold text-[10px]"><i class="fa-solid fa-trash"></i></button>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openAddViolationModal() {
+            const modal = document.getElementById('modalContainer');
+            const box = document.getElementById('modalContentBox');
+            box.innerHTML = `
+                <div class="bg-santara-navy text-white p-4 flex items-center justify-between">
+                    <h3 class="font-bold text-sm">Form Pencatatan Pelanggaran & Poin Kedisiplinan</h3>
+                    <button onclick="closeModal()" class="text-white hover:text-gray-300"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+                <div class="p-6 space-y-4 text-xs">
+                    <div>
+                        <label class="block font-bold mb-1 uppercase">PILIH SISWA</label>
+                        <select id="violStudentId" class="w-full p-3.5 border rounded-xl font-semibold bg-gray-50">
+                            ${mockState.students.map(s => `<option value="${s.id}">${s.name} (NIS: ${s.nis})</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1 uppercase">BENTUK PELANGGARAN</label>
+                        <input type="text" id="violDesc" class="w-full p-3.5 border rounded-xl" placeholder="Contoh: Terlambat hadir / Tidak sopan...">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block font-bold mb-1 uppercase">KATEGORI</label>
+                            <select id="violCategory" class="w-full p-3.5 border rounded-xl">
+                                <option value="Ringan">Ringan</option>
+                                <option value="Sedang">Sedang</option>
+                                <option value="Berat">Berat</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-bold mb-1 uppercase">JUMLAH POIN PENGURANG</label>
+                            <input type="number" id="violPoints" class="w-full p-3.5 border rounded-xl" value="5">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1 uppercase">TINDAKAN PEMBINAAN</label>
+                        <input type="text" id="violAction" class="w-full p-3.5 border rounded-xl" value="Pembinaan wali kelas & surat komitmen">
+                    </div>
+                    <button onclick="submitViolation()" class="w-full py-3.5 bg-red-600 text-white font-bold rounded-xl shadow-md">Simpan & Potong Poin Karakter Siswa</button>
+                </div>
+            `;
+            modal.classList.add('flex');
+            modal.classList.remove('hidden');
+        }
+
+        function submitViolation() {
+            const studId = parseInt(document.getElementById('violStudentId').value);
+            const violation = document.getElementById('violDesc').value.trim();
+            const category = document.getElementById('violCategory').value;
+            const points = parseInt(document.getElementById('violPoints').value) || 5;
+            const action = document.getElementById('violAction').value.trim();
+            const student = mockState.students.find(x => x.id === studId);
+            if(!violation || !student) { showToast('Peringatan', 'Deskripsi pelanggaran wajib diisi.'); return; }
+            run(async () => { const { error } = await sb.from('violations').insert({ student_id: studId, violation, category, points: -Math.abs(points), action: action || 'Pembinaan wali kelas' }); if (error) throw error; closeModal(); },
+                ['Berhasil Tercatat', `Pelanggaran ${student.name} berhasil disimpan & poin dikurangi.`], 'violations');
+        }
+
+        function deleteViolation(id) {
+            run(async () => { const { error } = await sb.from('violations').delete().eq('id', id); if (error) throw error; },
+                ['Berhasil', 'Catatan pelanggaran dihapus.'], 'violations');
+        }
+
+        function renderHomeVisitView(container) {
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="bg-white rounded-3xl p-6 md:p-8 border border-santara-border shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-santara-navy">Home Visit & Dokumentasi Kunjungan Rumah</h3>
+                            <p class="text-xs text-santara-textSec mt-0.5">Kelola jadwal kunjungan, petugas, hasil home visit, serta dokumentasi foto bukti.</p>
+                        </div>
+                        <button onclick="openAddHomeVisitModal()" class="px-5 py-3 bg-santara-teal hover:bg-teal-800 text-white rounded-2xl text-xs font-bold transition shadow-md flex items-center space-x-2">
+                            <i class="fa-solid fa-house-chimney-user text-sm"></i>
+                            <span>+ Catat Home Visit Baru</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-3xl border border-santara-border shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-gray-50 text-santara-textSec uppercase font-semibold border-b border-santara-border">
+                                    <tr>
+                                        <th class="p-3.5">Tanggal & NISN</th>
+                                        <th class="p-3.5">Nama Siswa</th>
+                                        <th class="p-3.5">Petugas / Wali Kelas</th>
+                                        <th class="p-3.5">Tujuan & Hasil Kunjungan</th>
+                                        <th class="p-3.5">Bukti Foto</th>
+                                        <th class="p-3.5 text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    ${mockState.homeVisits.length === 0 ? `<tr><td colspan="6" class="p-6 text-center text-gray-400">Belum ada riwayat home visit.</td></tr>` : mockState.homeVisits.map(h => {
+                                        const student = mockState.students.find(s => s.nis === h.nis) || { name: h.studentName };
+                                        return `
+                                            <tr class="hover:bg-gray-50 transition">
+                                                <td class="p-3.5 text-gray-500 font-mono">${h.date}<br><span class="font-bold text-santara-navy">${h.nis}</span></td>
+                                                <td class="p-3.5 font-bold text-santara-navy">${student.name}</td>
+                                                <td class="p-3.5 text-gray-700 font-medium">${h.officer}</td>
+                                                <td class="p-3.5 text-gray-700 max-w-xs">
+                                                    <p class="font-bold">${h.reason}</p>
+                                                    <p class="text-[10px] text-gray-500 mt-0.5">Hasil: ${h.result}</p>
+                                                </td>
+                                                <td class="p-3.5">
+                                                    ${h.evidenceUrl ? `<button onclick="openEvidenceModalHomeVisit(${h.id})" class="px-2.5 py-1 bg-teal-50 text-santara-teal border border-teal-200 rounded-xl font-bold hover:bg-teal-100"><i class="fa-solid fa-image mr-1"></i> Lihat Foto</button>` : '<span class="text-gray-400">Tanpa Foto</span>'}
+                                                </td>
+                                                <td class="p-3.5 text-right space-x-1 whitespace-nowrap">
+                                                    <button onclick="deleteHomeVisit(${h.id})" class="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold text-[10px]"><i class="fa-solid fa-trash"></i></button>
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderCounselingView(container) {
+            container.innerHTML = `
+                <div class="space-y-6">
+                    <div class="bg-white rounded-3xl p-6 md:p-8 border border-santara-border shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-lg font-bold text-santara-navy">Manajemen Pembinaan & Konseling BK</h3>
+                            <p class="text-xs text-santara-textSec mt-0.5">Catat sesi konseling, permasalahan siswa, langkah penanganan, dan hasil pembinaan.</p>
+                        </div>
+                        <button onclick="openAddCounselingModal()" class="px-5 py-3 bg-santara-teal hover:bg-teal-800 text-white rounded-2xl text-xs font-bold transition shadow-md flex items-center space-x-2">
+                            <i class="fa-solid fa-user-shield text-sm"></i>
+                            <span>+ Tambah Catatan Konseling</span>
+                        </button>
+                    </div>
+
+                    <div class="bg-white rounded-3xl border border-santara-border shadow-sm overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-gray-50 text-santara-textSec uppercase font-semibold border-b border-santara-border">
+                                    <tr>
+                                        <th class="p-3.5">Tanggal & NISN</th>
+                                        <th class="p-3.5">Nama Siswa</th>
+                                        <th class="p-3.5">Kategori Masalah</th>
+                                        <th class="p-3.5">Uraian & Penanganan</th>
+                                        <th class="p-3.5">Hasil / Status</th>
+                                        <th class="p-3.5 text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    ${mockState.counseling.length === 0 ? `<tr><td colspan="6" class="p-6 text-center text-gray-400">Belum ada catatan konseling.</td></tr>` : mockState.counseling.map(c => {
+                                        const student = mockState.students.find(s => s.nis === c.nis) || { name: c.studentName };
+                                        return `
+                                            <tr class="hover:bg-gray-50 transition">
+                                                <td class="p-3.5 text-gray-500 font-mono">${c.date}<br><span class="font-bold text-santara-navy">${c.nis}</span></td>
+                                                <td class="p-3.5 font-bold text-santara-navy">${student.name}</td>
+                                                <td class="p-3.5"><span class="px-2.5 py-1 bg-purple-50 text-purple-700 rounded-lg font-bold">${c.category}</span></td>
+                                                <td class="p-3.5 text-gray-700 max-w-xs">
+                                                    <p class="font-semibold">${c.description}</p>
+                                                    <p class="text-[10px] text-teal-700 mt-0.5">Tindakan: ${c.action}</p>
+                                                </td>
+                                                <td class="p-3.5">
+                                                    <span class="px-2.5 py-1 rounded-lg text-[10px] font-bold ${c.status === 'SELESAI' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">${c.status}</span>
+                                                    <p class="text-[10px] text-gray-500 mt-0.5">${c.result}</p>
+                                                </td>
+                                                <td class="p-3.5 text-right space-x-1 whitespace-nowrap">
+                                                    <button onclick="deleteCounseling(${c.id})" class="px-2.5 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold text-[10px]"><i class="fa-solid fa-trash"></i></button>
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function openAddCounselingModal() {
+            const modal = document.getElementById('modalContainer');
+            const box = document.getElementById('modalContentBox');
+            box.innerHTML = `
+                <div class="bg-santara-navy text-white p-4 flex items-center justify-between">
+                    <h3 class="font-bold text-sm">Tambah Catatan Pembinaan & Konseling BK</h3>
+                    <button onclick="closeModal()" class="text-white hover:text-gray-300"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+                <div class="p-6 space-y-4 text-xs">
+                    <div>
+                        <label class="block font-bold mb-1 uppercase">PILIH SISWA</label>
+                        <select id="counselingStudentSelect" class="w-full p-3.5 border rounded-xl font-semibold bg-gray-50">
+                            ${mockState.students.map(s => `<option value="${s.nis}">${s.name} (NIS: ${s.nis})</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1 uppercase">KATEGORI MASALAH</label>
+                        <input type="text" id="counselingCategory" class="w-full p-3.5 border rounded-xl" placeholder="Misal: Kedisiplinan & Keterlambatan...">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1 uppercase">URAIAN PERMASALAHAN</label>
+                        <textarea id="counselingDesc" rows="3" class="w-full p-3.5 border rounded-xl" placeholder="Jelaskan detail permasalahan siswa..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1 uppercase">LANGKAH PENANGANAN / TINDAKAN</label>
+                        <input type="text" id="counselingAction" class="w-full p-3.5 border rounded-xl" placeholder="Misal: Pemberian konseling motivasi...">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1 uppercase">HASIL / KOMITMEN</label>
+                        <input type="text" id="counselingResult" class="w-full p-3.5 border rounded-xl" placeholder="Misal: Siswa berkomitmen datang tepat waktu...">
+                    </div>
+                    <button onclick="submitCounseling()" class="w-full py-3.5 bg-santara-teal text-white font-bold rounded-xl shadow-md">Simpan Catatan Konseling</button>
+                </div>
+            `;
+            modal.classList.add('flex');
+            modal.classList.remove('hidden');
+        }
+
+        function submitCounseling() {
+            const nis = document.getElementById('counselingStudentSelect').value;
+            const student = mockState.students.find(x => x.nis === nis);
+            const category = document.getElementById('counselingCategory').value;
+            const description = document.getElementById('counselingDesc').value.trim();
+            const action = document.getElementById('counselingAction').value.trim();
+            const result = document.getElementById('counselingResult').value.trim();
+            if(!category || !description || !student) { showToast('Peringatan', 'Kategori dan uraian permasalahan wajib diisi.'); return; }
+            run(async () => { const { error } = await sb.from('counseling').insert({ student_id: student.id, category, description, action: action || 'Pembinaan wali kelas', result: result || 'Siswa kooperatif' }); if (error) throw error; closeModal(); },
+                ['Berhasil', 'Catatan pembinaan & konseling berhasil disimpan.'], 'counseling');
+        }
+
+        function deleteCounseling(id) {
+            run(async () => { const { error } = await sb.from('counseling').delete().eq('id', id); if (error) throw error; },
+                ['Berhasil', 'Catatan konseling dihapus.'], 'counseling');
+        }
+
+        function openAddHomeVisitModal() {
+            const modal = document.getElementById('modalContainer');
+            const box = document.getElementById('modalContentBox');
+            box.innerHTML = `
+                <div class="bg-santara-navy text-white p-4 flex items-center justify-between">
+                    <h3 class="font-bold text-sm">Tambah Dokumentasi Home Visit (Kunjungan Rumah)</h3>
+                    <button onclick="closeModal()" class="text-white hover:text-gray-300"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+                <div class="p-6 space-y-4 text-xs">
+                    <div>
+                        <label class="block font-bold mb-1 uppercase">PILIH SISWA</label>
+                        <select id="hvStudentSelect" class="w-full p-3.5 border rounded-xl font-semibold bg-gray-50">
+                            ${mockState.students.map(s => `<option value="${s.nis}">${s.name} (NIS: ${s.nis})</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1 uppercase">TUJUAN / ALASAN KUNJUNGAN</label>
+                        <input type="text" id="hvReason" class="w-full p-3.5 border rounded-xl" placeholder="Misal: Akumulasi keterlambatan & absensi...">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1 uppercase">PETUGAS / WALI KELAS</label>
+                        <input type="text" id="hvOfficer" value="${mockState.schoolConfig.teacherName}" class="w-full p-3.5 border rounded-xl">
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1 uppercase">HASIL KUNJUNGAN RUMAH</label>
+                        <textarea id="hvResult" rows="3" class="w-full p-3.5 border rounded-xl" placeholder="Jelaskan hasil diskusi dengan orang tua..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block font-bold mb-1 uppercase">UNGGAH BUKTI FOTO KUNJUNGAN</label>
+                        <input type="file" id="hvEvidenceFile" accept="image/*" class="w-full p-2.5 border rounded-xl bg-gray-50 font-medium">
+                    </div>
+                    <button onclick="submitHomeVisit()" class="w-full py-3.5 bg-santara-teal text-white font-bold rounded-xl shadow-md">Simpan Home Visit</button>
+                </div>
+            `;
+            modal.classList.add('flex');
+            modal.classList.remove('hidden');
+        }
+
+        function submitHomeVisit() {
+            const nis = document.getElementById('hvStudentSelect').value;
+            const student = mockState.students.find(x => x.nis === nis);
+            const reason = document.getElementById('hvReason').value.trim();
+            const officer = document.getElementById('hvOfficer').value.trim();
+            const result = document.getElementById('hvResult').value.trim();
+            const fileInput = document.getElementById('hvEvidenceFile');
+            if(!reason || !student) { showToast('Peringatan', 'Tujuan kunjungan wajib diisi.'); return; }
+            const defaultImg = 'https://images.unsplash.com/photo-1577896851231-70ef18881754?w=400';
+            const finish = (img) => run(async () => {
+                const { error } = await sb.from('home_visits').insert({ student_id: student.id, officer: officer || mockState.schoolConfig.teacherName, reason, result: result || 'Orang tua kooperatif', evidence_url: img || defaultImg });
+                if (error) throw error; closeModal();
+            }, ['Berhasil', 'Dokumentasi home visit berhasil disimpan.'], 'homeVisit');
+            if (fileInput && fileInput.files && fileInput.files[0]) compressImage(fileInput.files[0], 900, finish); else finish(null);
+        }
+
+        function deleteHomeVisit(id) {
+            run(async () => { const { error } = await sb.from('home_visits').delete().eq('id', id); if (error) throw error; },
+                ['Berhasil', 'Catatan home visit dihapus.'], 'homeVisit');
+        }
+
+        function openEvidenceModalHomeVisit(id) {
+            const h = mockState.homeVisits.find(x => x.id === id);
+            if(!h) return;
+            const modal = document.getElementById('modalContainer');
+            const box = document.getElementById('modalContentBox');
+            box.innerHTML = `
+                <div class="bg-santara-navy text-white p-4 flex items-center justify-between">
+                    <div>
+                        <h3 class="font-bold text-sm">BUKTI FOTO KUNJUNGAN HOME VISIT (${h.studentName})</h3>
+                        <p class="text-[11px] text-teal-300 font-medium">Tanggal: ${h.date} • Petugas: ${h.officer}</p>
+                    </div>
+                    <button onclick="closeModal()" class="text-white hover:text-gray-300"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+                <div class="p-6 space-y-4 text-center">
+                    <p class="text-xs text-gray-700 text-left"><strong>Tujuan:</strong> ${h.reason}<br><strong>Hasil:</strong> ${h.result}</p>
+                    <div class="bg-white p-2 rounded-2xl border inline-block max-w-full">
+                        <img src="${h.evidenceUrl}" class="max-h-80 rounded-xl object-contain mx-auto shadow" alt="Bukti Home Visit">
+                    </div>
+                </div>
+            `;
+            modal.classList.add('flex');
+            modal.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
